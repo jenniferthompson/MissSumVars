@@ -26,5 +26,24 @@ names(save_df) <- c("id", "study_day", "sofa_mod", "status")
 ## Anonymize IDs
 save_df$id <- match(save_df$id, ids_lt)
 
+## Force status to be a character
+save_df$status <- as.character(save_df$status)
+
 ## Save final file
 saveRDS(save_df, file = "rawdata/seeddf.rds")
+
+## Calculate intercept for simulations
+fu_df <- subset(
+  brain.fu,
+  id %in% ids_lt & fu.period == "12 Month",
+  select = c(id, rbans.global.score)
+)
+
+oneobs_df <- subset(
+  brain.oneobs,
+  id %in% ids_lt,
+  select = c(id, del.s.imp)
+)
+
+int_df <- merge(oneobs_df, fu_df, by = "id")
+int_mod <- lm(rbans.global.score ~ del.s.imp, data = int_df)
