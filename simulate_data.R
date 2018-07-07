@@ -45,12 +45,11 @@ int_rbans <- 79.7103 ## Intercept, model for outcome
 sample_ids <- sample(all_ids, size = npts, replace = TRUE)
 
 sample_df <- map_dfr(
-  sample_ids, ~ subset(seed_df, id == .)
-)
-
-## ****SIREN****
-## Need to create a *new* ID variable for grouping later, so that if Pt 1 is
-## included 3x in sample, their delirium duration isn't tripled!
+  sample_ids, ~ subset(seed_df, id == .),
+  .id = "rep"
+) %>%
+  ## Create *new* ID variable that differentiates original IDs included >1 time
+  unite(new_id, id, rep, remove = FALSE)
 
 ## -- 2. Calculate P(missingness) for each day, given SOI if not MCAR ----------
 if(miss_type %in% c("mar", "mnar")){
@@ -93,7 +92,7 @@ ggplot(data = sample_df) +
 ##  (ie, function will have several "if(){...} else{...}" statements which will
 ##  depend on summary_strat argument)
 del_df <- sample_df %>%
-  group_by(id) %>% ## THIS NEEDS TO BE FIXED - see above!
+  group_by(new_id) %>%
   summarise(
     del_actual = sum(status == "Delirious"),
     del_miss = sum(status_miss == "Delirious", na.rm = TRUE),
