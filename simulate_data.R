@@ -127,6 +127,12 @@ if(summary_strat == "ignore"){
     mutate(
       del_miss = ifelse(num_del_miss > 0, NA, del_miss)
     )
+  
+  ## Use mice to impute *entire* duration of delirium for anyone missing records
+  del_mids <- del_df %>%
+    dplyr::select(del_miss, mean_sofa) %>%
+    mice(m = nimp, visitSequence = "monotone") ## will need to set seed for reproducibility
+
 } else{
   ## Prepare data for imputation: get status, SOI on previous, next days
   imp_df <- sample_df %>%
@@ -139,24 +145,36 @@ if(summary_strat == "ignore"){
       next_sofa = lead(sofa_mod)
     ) %>%
     ungroup() %>%
-    dplyr::select(study_day, matches("sofa|status"), -status) %>%
+    dplyr::select(new_id, study_day, matches("sofa|status"), -status) %>%
     ## Status needs to be factor
     mutate_at(
       vars(matches("status")),
       ~ factor(., levels = c("Normal", "Delirious", "Comatose"))
     )
-
-  del_mice <- mice(
+  
+  ## Create predictorMatrix for mice(): Need to keep new_id in imp_df so that
+  ##  it remains in final dataset, but don't want to use it in imputation
+  ##  (it means nothing)
+  ## Goal: matrix that is ncol(imp_df) x ncol(imp_df);
+  ##       new_id column and diagonal = 0, everything else = 1
+  ##       (These are default mice() settings, except for new_id)
+  imp_matrix <- matrix(1, nrow = ncol(imp_df), ncol = ncol(imp_df))
+  imp_matrix[, match("new_id", names(imp_df))] <- 0
+  diag(imp_matrix) <- 0
+  ## check:
+  ## colnames(imp_matrix) <- rownames(imp_matrix) <- names(imp_df); imp_matrix
+  
+  del_mice_daily <- mice(
     data = imp_df,
     m = nimp,
-    visitSequence = "monotone"
+    visitSequence = "monotone",
+    predictorMatrix = imp_matrix
   ) ## will need to add seed here for reproducibility
   
-  del_comp <- complete(del_mice, action = "long")
-  del_comp$new_id <- rep(sample_df$new_id, times = nimp)
+  del_comp <- complete(del_mice_daily, action = "long", include = TRUE)
   
   ## For each imputation, calculate summary statistic for each patient ID
-  del_imp_df <- del_comp %>%
+  del_df <- del_comp %>%
     group_by(.imp, new_id) %>%
     summarise(
       del_miss = sum(status_miss == "Delirious"),
@@ -164,7 +182,9 @@ if(summary_strat == "ignore"){
     ) %>%
     ungroup()
   
-  ## Need to create a mids object from this, but the coffee shop is closing
+  ## Create mids() object from del_df to use in modeling
+  del_mids <- as.mids(del_df, .id = "new_id")
+  
 }
 
 ## -- 5. Simulate outcome | relationship w/ *actual* days delirious ------------
