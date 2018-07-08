@@ -28,7 +28,7 @@ all_ids <- unique(seed_df$id)
 ## These will all become arguments to a function
 miss_type <- "mar" ## Is missingness MCAR or MAR? Values: mcar, mar, mnar
 miss_amt <- 0.2 ## What proportion of days should be missing mental status?
-summary_strat <- "ignore"
+summary_strat <- "delete"
   ## Which strategy to use to calculate total delirium duration?
   ## "ignore" = assume non-delirious (abstract method 2b)
   ## "worst" = assume delirious (2a)
@@ -247,12 +247,19 @@ if(miss_type %in% c("mar")){
 if(summary_strat %in% c("ignore", "worst")){
   mod <- eval(parse(text = sprintf("lm(%s, data = del_miss_df)", mod_formula)))
   
-  ## TODO: Extract single beta, SE from mod
+  ## Extract beta, SE for delirium from mod
+  beta_del <- pluck(mod, "coefficients", "del_miss")
+  se_del <- sqrt(vcov(mod)["del_miss", "del_miss"])
+  
 } else{
   mod <-
     eval(parse(text = sprintf("with(del_mids, lm(formula = %s))", mod_formula)))
   
-  ## TODO: Extract pooled beta, SE from mod
+  ## Extract pooled beta, SE from mod
+  mod_pool <- mice::pool(mod)
+  
+  beta_del <- mod_pool$pooled["del_miss", "estimate"]
+  se_del <- mod_pool$pooled["del_miss", "ubar"]
 }
 
 ## TODO: More code to save all needed info and return in a list
