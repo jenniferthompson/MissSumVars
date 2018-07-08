@@ -93,45 +93,87 @@ if(miss_type %in% c("mar", "mnar")){
 #     point_shape = '|', point_size = 3, alpha = 0.25
 #   )
 
-## -- 4. Calculate *summary variable* (days of delirium) for each patient ------
+## -- 4. Simulate outcome | relationship w/ *actual* days delirious ------------
+## 4a. Simulate random error
+## 4b. Calculate actual days delirious, then linear predictor (= actual score)
+rbans_errors <- rnorm(n = npts)
+
+del_rbans_df <- sample_df %>%
+  group_by(new_id) %>%
+  summarise(
+    del_actual = sum(status == "Delirious"),
+    mean_sofa = mean(sofa_mod)
+  ) %>%
+  ungroup()
+
+del_rbans_df$rbans <- int_rbans + bdel * del_rbans_df$del_actual + rbans_errors
+
+## -- 5. Calculate *summary variable* (days of delirium) for each patient, -----
+## --    using status with missing values --------------------------------------
 if(summary_strat == "ignore"){
-  del_df <- sample_df %>%
+  del_miss_df <- sample_df %>%
     group_by(new_id) %>%
     summarise(
-      del_actual = sum(status == "Delirious"),
       ## Assume all missing days do *not* have the exposure
       del_miss = sum(status_miss == "Delirious", na.rm = TRUE),
       mean_sofa = mean(sofa_mod) ## no missingness here due to study design
-    )
+    ) %>%
+    ## Add simulated RBANS
+    left_join(dplyr::select(del_rbans_df, new_id, rbans), by = "new_id")
+  
 } else if(summary_strat == "worst"){
-  del_df <- sample_df %>%
+  del_miss_df <- sample_df %>%
     mutate(
       ## Assume all missing days *do* have the exposure
       status_miss = ifelse(is.na(status_miss), "Delirious", status_miss)
     ) %>%
     group_by(new_id) %>%
     summarise(
-      del_actual = sum(status == "Delirious"),
       del_miss = sum(status_miss == "Delirious", na.rm = TRUE),
       mean_sofa = mean(sofa_mod) ## no missingness here due to study design
-    )
+    ) %>%
+    ## Add simulated RBANS
+    left_join(dplyr::select(del_rbans_df, new_id, rbans), by = "new_id")
+  
 } else if(summary_strat == "delete"){
-  del_df <- sample_df %>%
+  imp_df <- sample_df %>%
     group_by(new_id) %>%
     summarise(
-      del_actual = sum(status == "Delirious"),
       num_del_miss = sum(is.na(status_miss)),
       del_miss = sum(status_miss == "Delirious", na.rm = TRUE),
       mean_sofa = mean(sofa_mod) ## no missingness here due to study design
     ) %>%
     mutate(
       del_miss = ifelse(num_del_miss > 0, NA, del_miss)
-    )
+    ) %>%
+    dplyr::select(-num_del_miss)
   
+  ## Create predictorMatrix for mice(): Need to keep new_id in imp_df so that
+  ##  it remains in final dataset, but don't want to use it in imputation
+  ##  (it means nothing)
+  ## Goal: matrix that is ncol(imp_df) x ncol(imp_df);
+  ##       new_id column and diagonal = 0, everything else = 1
+  ##       (These are default mice() settings, except for new_id)
+  imp_matrix <- matrix(1, nrow = ncol(imp_df), ncol = ncol(imp_df))
+  imp_matrix[, match("new_id", names(imp_df))] <- 0
+  imp_matrix[match("new_id", names(imp_df)), ] <- 0
+  diag(imp_matrix) <- 0
+  ## check:
+  ## colnames(imp_matrix) <- rownames(imp_matrix) <- names(imp_df); imp_matrix
+
   ## Use mice to impute *entire* duration of delirium for anyone missing records
-  del_mids <- del_df %>%
-    dplyr::select(del_miss, mean_sofa) %>%
-    mice(m = nimp, visitSequence = "monotone") ## will need to set seed for reproducibility
+  del_mids_1 <- imp_df %>%
+    dplyr::select(new_id, del_miss, mean_sofa) %>%
+    mice(m = nimp, visitSequence = "monotone", predictorMatrix = imp_matrix)
+      ## will need to set seed for reproducibility
+  
+  ## Merge simulated RBANS for each ID with SOFA, imputed delirium values
+  del_comp <- complete(del_mids_1, action = "long", include = TRUE) %>%
+    dplyr::select(-.id) %>%
+    left_join(dplyr::select(del_rbans_df, new_id, rbans), by = "new_id")
+  
+  ## Recreate mids() object for modeling in next step
+  del_mids <- as.mids(del_comp, .id = "new_id")
 
 } else{
   ## Prepare data for imputation: get status, SOI on previous, next days
@@ -180,30 +222,38 @@ if(summary_strat == "ignore"){
       del_miss = sum(status_miss == "Delirious"),
       mean_sofa = mean(sofa_mod)
     ) %>%
-    ungroup()
+    ungroup() %>%
+    ## Merge on simulated RBANS values for each patient
+    left_join(dplyr::select(del_rbans_df, new_id, rbans), by = "new_id")
   
   ## Create mids() object from del_df to use in modeling
   del_mids <- as.mids(del_df, .id = "new_id")
   
 }
 
-## -- 5. Simulate outcome | relationship w/ *actual* days delirious ------------
-## 5a. Simulate random error
-## 5b. Calculate linear predictor (= actual score)
-rbans_errors <- rnorm(n = nrow(del_df))
-del_df$rbans <- int_rbans + bdel * del_df$del_actual + rbans_errors
-
 ## -- 6. Fit model using *delirium with missing data*, extract beta, SD --------
+## 6a. Determine model formula based on type of missingness:
+##     If MAR, adjust for SOI; otherwise, do not
 if(miss_type %in% c("mar")){
   ## MAR: Can adjust for the variable which affects missingness
-  mod <- lm(rbans ~ del_miss + mean_sofa, data = del_df)
+  mod_formula <- "rbans ~ del_miss + mean_sofa"
 } else{
   ## MCAR: Don't need to adjust for variable that affects missingness
   ## MNAR: "Can't" adjust for variable that affects missingness
-  mod <- lm(rbans ~ del_miss, data = del_df)
+  mod_formula <- "rbans ~ del_miss"
 }
-## Additions needed: *impute* models if specified by summary_strat
 
-## Will add code to extract beta, SE (from which we'll calculate CI)
+## 6b. Fit model on del_df ("ignore", "worst") or del_mids ("delete", "impute")
+if(summary_strat %in% c("ignore", "worst")){
+  mod <- eval(parse(text = sprintf("lm(%s, data = del_miss_df)", mod_formula)))
+  
+  ## TODO: Extract single beta, SE from mod
+} else{
+  mod <-
+    eval(parse(text = sprintf("with(del_mids, lm(formula = %s))", mod_formula)))
+  
+  ## TODO: Extract pooled beta, SE from mod
+}
 
-## More code to save all needed info and return in a list
+## TODO: More code to save all needed info and return in a list
+## TODO: Make this script a function for easy purrr-ing
