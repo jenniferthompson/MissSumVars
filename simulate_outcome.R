@@ -10,13 +10,13 @@
 ## - new_id: subject + rep ID (need for merging with summarized mental status
 ##           values calculated using various strategies)
 ## - del_actual: observed duration of delirium with complete data
-## - ltci: simulated outcome variable | actual duration of delirium and bdel
+## - cogscore: simulated outcome variable | actual duration of delirium and bdel
 
-## intltci: default = E(ltci) for someone with no delirium in motivating example
+## intcs: default = E(cogscore) for pt with no delirium in motivating example
 
 library(dplyr)
 
-simulate_ltci <- function(df, bdel, intltci = 79.7103){
+simulate_ltci <- function(df, bdel, intcs = 79.7103){
   npts <- length(unique(df$new_id))
   
   ## 1. Simulate random error ~ N(0, 1)
@@ -30,7 +30,7 @@ simulate_ltci <- function(df, bdel, intltci = 79.7103){
     ) %>%
     ungroup()
 
-  summary_df$ltci <- intltci + bdel * summary_df$del_actual + epsilon
+  summary_df$cogscore <- intcs + bdel * summary_df$del_actual + epsilon
   
   return(summary_df)
 
