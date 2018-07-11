@@ -6,7 +6,7 @@
 ## Assumes `df` has columns `new_id` (subject + rep ID) and `status` (which
 ## takes values Normal, Delirious, Comatose) and contains >=1 record per subject
 
-## Returns `summary_df`, with one record per subject and columns:
+## Returns `outcome_df`, with one record per subject and columns:
 ## - new_id: subject + rep ID (need for merging with summarized mental status
 ##           values calculated using various strategies)
 ## - del_actual: observed duration of delirium with complete data
@@ -16,22 +16,27 @@
 
 library(dplyr)
 
-simulate_ltci <- function(df, bdel, intcs = 79.7103){
+simulate_cogscore <- function(
+  df, ## Starting longitudinal data.frame
+  bdel, ## average change in outcome for a one-day increase in delirium
+  intcs = 79.7103 ## mean outcome for patients with no delirium
+    ## default value comes from motivating example
+){
   npts <- length(unique(df$new_id))
   
   ## 1. Simulate random error ~ N(0, 1)
   epsilon <- rnorm(n = npts)
 
   ## 2. Calculate actual days delirious, then linear predictor (= actual score)
-  summary_df <- df %>%
+  outcome_df <- df %>%
     group_by(new_id) %>%
     summarise(
       del_actual = sum(status == "Delirious")
     ) %>%
     ungroup()
 
-  summary_df$cogscore <- intcs + bdel * summary_df$del_actual + epsilon
+  outcome_df$cogscore <- intcs + bdel * outcome_df$del_actual + epsilon
   
-  return(summary_df)
+  return(outcome_df)
 
 }
