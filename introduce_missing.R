@@ -20,6 +20,11 @@ addmiss_mcar <- function(df, seed_set, miss_prop = 0.05){
   df$status_miss <- df$status
   df$status_miss[which_na] <- NA
   
+  ## Add parameters to actual data.frame; who knows when this might help
+  df$miss_type <- "mcar"
+  df$miss_prop <- miss_prop
+  df$assoc <- NA
+  
   return(df)
 }
 
@@ -75,6 +80,11 @@ addmiss_mar <- function(
   # ## Check
   # mean(is.na(df$status_miss))
 
+  ## Add parameters to actual data.frame; who knows when this might help
+  df$miss_type <- "mar"
+  df$miss_prop <- miss_prop
+  df$assoc <- assoc_strength
+  
   return(df)
   
 }
@@ -139,6 +149,11 @@ addmiss_mnar <- function(
   
   # ## Check
   # mean(is.na(df$status_miss))
+  
+  ## Add parameters to actual data.frame; who knows when this might help
+  df$miss_type <- "mnar"
+  df$miss_prop <- miss_prop
+  df$assoc <- assoc_strength
   
   return(df)
   
