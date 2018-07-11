@@ -24,42 +24,29 @@ addmiss_mcar <- function(df, seed_set, miss_amt = 0.05){
 }
 
 ## -- MAR: P(missing) is related to daily severity of illness ------------------
-## assoc_strength: incorporates overall proportion of days missing status +
-##                 association between SOI and missingness
 addmiss_mar <- function(
-  df,
-  seed_set,
-  miss_prop = c(0.05, 0.20, 0.35, 0.50),
-  assoc_strength = c("weak", "mod", "strong")
+  df, ## data.frame to which we want to introduce missing values
+  seed_set, ## seed, for reproducibility
+  miss_prop = c(0.05, 0.20, 0.35, 0.50), ## overall proportion missing statuses
+  assoc_strength = c("weak", "mod", "strong") ## assoc. between SOI, missingness
 ){
   ## Set intercept, beta for SOI depending on association strength
-  ## Values determined, rounded based on single simulated df from motivating ex
-  ## 5%, weak association:        -3.0, 0.01
-  ## 5%, moderate association:    -3.5, 0.1
-  ## 5%, strong association:      -4.1, 0.2
-  ## 20%, weak association:       -1.4, 0.01
-  ## 20%, moderate association:   -1.9, 0.1
-  ## 20%, strong association:     -2.5, 0.2
-  ## 35%, weak association:       -0.7, 0.01
-  ## 35%, moderate association:  -1.15, 0.1
-  ## 35%, strong association:     -1.7, 0.2
-  ## 50%, weak association:     -0.025, 0.01
-  ## 50%, moderate association:   -0.5, 0.1
-  ## 50%, strong association:     -1.0, 0.2
+  ## Values determined so that distribution of missingness for all simulated dfs
+  ##   is roughly normal with center as specified
   int <- case_when(
-    assoc_strength == "weak"   & miss_prop == 0.05 ~ -3.0,   #
-    assoc_strength == "mod"    & miss_prop == 0.05 ~ -3.5,   #
+    assoc_strength == "weak"   & miss_prop == 0.05 ~ -2.95,  #
+    assoc_strength == "mod"    & miss_prop == 0.05 ~ -3.45,  #
     assoc_strength == "strong" & miss_prop == 0.05 ~ -4.1,   #
     
     assoc_strength == "weak"   & miss_prop == 0.20 ~ -1.4,   #
-    assoc_strength == "mod"    & miss_prop == 0.20 ~ -1.9,   #
-    assoc_strength == "strong" & miss_prop == 0.20 ~ -2.5,   #
+    assoc_strength == "mod"    & miss_prop == 0.20 ~ -1.85,  #   
+    assoc_strength == "strong" & miss_prop == 0.20 ~ -2.475, #   
     
-    assoc_strength == "weak"   & miss_prop == 0.35 ~ -0.7,   #
-    assoc_strength == "mod"    & miss_prop == 0.35 ~ -1.15,  #
+    assoc_strength == "weak"   & miss_prop == 0.35 ~ -0.65,  #
+    assoc_strength == "mod"    & miss_prop == 0.35 ~ -1.125, # 
     assoc_strength == "strong" & miss_prop == 0.35 ~ -1.7,   #
     
-    assoc_strength == "weak"   & miss_prop == 0.50 ~ -0.025, #
+    assoc_strength == "weak"   & miss_prop == 0.50 ~ -0.04,  #
     assoc_strength == "mod"    & miss_prop == 0.50 ~ -0.5,   #
     assoc_strength == "strong" & miss_prop == 0.50 ~ -1.0,   #
     TRUE ~ as.numeric(NA)
@@ -85,7 +72,7 @@ addmiss_mar <- function(
   df$status_miss <- df$status
   df$status_miss[as.logical(is_miss)] <- NA
 
-  # ## Check  
+  # ## Check
   # mean(is.na(df$status_miss))
 
   return(df)
@@ -101,4 +88,67 @@ addmiss_mar <- function(
 # )
 # mean(is.na(tmp$status_miss))
 
-## TOADD: addmiss_mnar(); same as addmiss_mar(), but lp_miss <- int + bdel * [indicator for delirium]
+## -- MNAR: P(missing) is related to delirium itself ---------------------------
+addmiss_mnar <- function(
+  df, ## data.frame to which we want to introduce missing values
+  seed_set, ## seed, for reproducibility
+  miss_prop = c(0.05, 0.20, 0.35, 0.50), ## overall proportion missing statuses
+  assoc_strength = c("weak", "mod", "strong") ## assoc. between del, missingness
+){
+  ## Set intercept, beta for delirium depending on association strength
+  ## Values determined so that distribution of missingness for all simulated dfs
+  ##   is roughly normal with center as specified
+  int <- case_when(
+    assoc_strength == "weak"   & miss_prop == 0.05 ~ -2.9,   #
+    assoc_strength == "mod"    & miss_prop == 0.05 ~ -3.0,   # 
+    assoc_strength == "strong" & miss_prop == 0.05 ~ -3.2,   #  
+    
+    assoc_strength == "weak"   & miss_prop == 0.20 ~ -1.375, #   
+    assoc_strength == "mod"    & miss_prop == 0.20 ~ -1.5,   #
+    assoc_strength == "strong" & miss_prop == 0.20 ~ -1.7,   #   
+    
+    assoc_strength == "weak"   & miss_prop == 0.35 ~ -0.635, #  
+    assoc_strength == "mod"    & miss_prop == 0.35 ~ -0.725, # 
+    assoc_strength == "strong" & miss_prop == 0.35 ~ -0.875, #  
+    
+    assoc_strength == "weak"   & miss_prop == 0.50 ~ -0.025, #
+    assoc_strength == "mod"    & miss_prop == 0.50 ~ -0.125, #      
+    assoc_strength == "strong" & miss_prop == 0.50 ~ -0.25,  #  
+    TRUE ~ as.numeric(NA)
+  )
+  bdel <- case_when(
+    assoc_strength == "weak"   ~ 0.1,
+    assoc_strength == "mod"    ~ 0.5,
+    assoc_strength == "strong" ~ 1.0,
+    TRUE ~ as.numeric(NA)
+  )
+  
+  ## Calculate P(missing) for each record, based on specified proportion of
+  ##  missingness and relationship with daily delirium
+  lp_miss <- int + (bdel * (df$status == "Delirious"))
+  p_miss <- plogis(lp_miss)
+  
+  ## Double check
+  ## hist(p_miss)
+  
+  ## Sample missingness for each day's record with p as calculated above
+  set.seed(seed_set)
+  is_miss <- rbinom(nrow(df), 1, p_miss)
+  df$status_miss <- df$status
+  df$status_miss[as.logical(is_miss)] <- NA
+  
+  # ## Check
+  # mean(is.na(df$status_miss))
+  
+  return(df)
+  
+}
+
+# ## Check
+# tmp <- addmiss_mnar(
+#   simdata_list[[sample(1:1000, size = 1)]],
+#   seed_set = 53,
+#   miss_amt = 0.2,
+#   assoc_strength = "mod"
+# )
+# mean(is.na(tmp$status_miss))
