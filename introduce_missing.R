@@ -12,11 +12,11 @@
 ##    records made missing as specified
 ## 2. Return `df` + new `status_miss` column
 
-## -- MCAR: Set random sample of miss_amt% patient-days equal to NA ------------
-addmiss_mcar <- function(df, seed_set, miss_amt = 0.05){
+## -- MCAR: Set random sample of miss_prop% patient-days equal to NA ------------
+addmiss_mcar <- function(df, seed_set, miss_prop = 0.05){
   ## Set random sample of X% patient-days equal to NA
   set.seed(seed_set)
-  which_na <- sample(1:nrow(df), round(nrow(df) * miss_amt))
+  which_na <- sample(1:nrow(df), round(nrow(df) * miss_prop))
   df$status_miss <- df$status
   df$status_miss[which_na] <- NA
   
@@ -83,7 +83,7 @@ addmiss_mar <- function(
 # tmp <- addmiss_mar(
 #   simdata_list[[sample(1:1000, size = 1)]],
 #   seed_set = 53,
-#   miss_amt = 0.2,
+#   miss_prop = 0.2,
 #   assoc_strength = "mod"
 # )
 # mean(is.na(tmp$status_miss))
@@ -148,7 +148,7 @@ addmiss_mnar <- function(
 # tmp <- addmiss_mnar(
 #   simdata_list[[sample(1:1000, size = 1)]],
 #   seed_set = 53,
-#   miss_amt = 0.2,
+#   miss_prop = 0.2,
 #   assoc_strength = "mod"
 # )
 # mean(is.na(tmp$status_miss))
