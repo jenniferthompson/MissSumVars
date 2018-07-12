@@ -24,7 +24,7 @@ library(mice)
 ## -- *Ignore* (assume no del. on missing days); sum all observed delirium -----
 summarize_ignore <- function(df){
   df %>%
-    group_by(new_id) %>%
+    group_by(miss_type, miss_prop, assoc, new_id) %>%
     summarise(
       days_avail = sum(!is.na(status_miss)),
       del_miss = sum(status_miss == "Delirious", na.rm = TRUE)
@@ -42,7 +42,7 @@ summarize_worst <- function(df){
       ## Assume all missing days *do* have the exposure
       status_miss = ifelse(is.na(status_miss), "Delirious", status_miss)
     ) %>%
-    group_by(new_id) %>%
+    group_by(miss_type, miss_prop, assoc, new_id) %>%
     summarise(
       del_miss = sum(status_miss == "Delirious", na.rm = TRUE)
     )
@@ -53,7 +53,7 @@ summarize_worst <- function(df){
 
 summarize_delete <- function(df){
   df <- df %>%
-    group_by(new_id) %>%
+    group_by(miss_type, miss_prop, assoc, new_id) %>%
     summarise(
       del_miss = sum(status_miss == "Delirious", na.rm = FALSE)
     )
@@ -62,6 +62,9 @@ summarize_delete <- function(df){
 ## -- *Impute daily data* (returns long df that can become a mids() object) ----
 ## Imputing at the lowest hierarchy (?)
 summarize_impute <- function(df, seed_set, nimp = 5){
+  ## Extract missingness info
+  miss_info <- subset(df, select = c(miss_type, miss_prop, assoc)) %>% unique()
+  
   prep_df <- df %>%
     dplyr::select(new_id, sofa_mod, status_miss) %>%
     ## Mice wants factors, not characters!
@@ -73,8 +76,10 @@ summarize_impute <- function(df, seed_set, nimp = 5){
   
   ## Create predictorMatrix for mice(): Need to keep new_id so that it remains
   ## in final dataset and we can merge with simulated outcome. But don't want to
-  ## use it in imputation (it means nothing).
-  imp_matrix <- make.predictorMatrix(subset(prep_df, select = -new_id))
+  ## use in imputation.
+  imp_matrix <- make.predictorMatrix(
+    subset(prep_df, select = c(sofa_mod, status_miss))
+  )
 
   mice_long <- mice(
     data = prep_df,
@@ -91,8 +96,12 @@ summarize_impute <- function(df, seed_set, nimp = 5){
     summarise(
       del_miss = sum(status_miss == "Delirious")
     ) %>%
-    ungroup()
-  
+    ungroup() %>%
+    bind_cols(
+      bind_rows(replicate(nrow(.), miss_info, simplify = FALSE)),
+      .
+    )
+
   ## This can be turned into a mids() object to use in modeling, a la:
   # df_mids <- as.mids(df, .id = "new_id")
   ## We will do this separately, after merging on simulated outcome
