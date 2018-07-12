@@ -49,14 +49,15 @@ simulate_cogscore <- function(
 
 simdata_list <- readRDS("analysisdata/simdata.rds")
 
-## Get all combinations
-outcome_args <- cross2(.x = simdata_list, .y = c(-1, -3, -5)) %>%
-  map(set_names, c("df", "bdel"))
+## Goal: List of length 1000
+## Each element corresponds to that element of simdata_list
+## Each element contains three simulated dfs, corresponding to bdel = -1, -3, -5
 
-## furrr *not* faster in this case (17.225sec vs 16.615)
-simoutcomes_list <- map(
-  outcome_args,
-  ~ simulate_cogscore(df = pluck(., "df"), bdel = pluck(., "bdel"))
-)
+## Function to get three simulated dfs
+simulate_eachbeta <- function(df){
+  map(c(-1, -3, -5), ~ simulate_cogscore(df = df, bdel = .))
+}
+
+simoutcomes_list <- map(simdata_list, simulate_eachbeta)
 
 saveRDS(simoutcomes_list, file = "analysisdata/outcomedata.rds")
