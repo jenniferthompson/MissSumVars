@@ -28,4 +28,4 @@ preparing summarized datasets for model fitting. Strategies:
     1. "Impute": Impute daily exposure status using daily covariate, then summarize exposure for each imputation. Use those imputed summary datasets in model-based imputation.
 - `fit_models.R`: Two functions to fit models which 1) do not and 2) require `mice::mids()` objects.
 
-Overview of workflow is [here]((https://htmlpreview.github.io/?https://github.com/jenniferthompson/MissSumVars/blob/master/workflow.html)).
+Overview of workflow is [here](https://htmlpreview.github.io/?https://github.com/jenniferthompson/MissSumVars/blob/master/workflow.html).
