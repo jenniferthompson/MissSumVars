@@ -2,8 +2,11 @@
 title: Simulating and Assessing Strategies for Summary Variables with Partially Missing
   Data
 author: "Jennifer Thompson, MPH"
-date: "7/12/2018"
-output: html_document
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: leonids
+    highlight: github
 ---
 
 ```{r setup, include=FALSE}
