@@ -93,7 +93,14 @@ head(outcomedata_list[[1]][[1]])
 
 ```
 
-For each simulated dataset, we will then:
+We'll start with one simulated dataset and take it through the rest of the
+process.
+
+```{r}
+df_org <- simdata_list[[1]]
+df_out_org <- outcomedata_list[[1]]
+
+```
 
 # 3. Introduce Missingness
 
@@ -112,7 +119,7 @@ each element is a list of 28 data.frames, all simulated from the seed data.frame
 with the specified type/amount of missingness added to the `status_miss`
 variable.
 
-```{r introduce_missing}
+```{r introduce_missing, eval = FALSE}
 intro_missing <- function(df, seed_set){
   miss_props <- c(0.05, 0.20, 0.35, 0.50)
   strengths <- c("weak", "mod", "strong")
@@ -144,109 +151,88 @@ intro_missing <- function(df, seed_set){
   
 }
 
-## purrr: 38.281sec
-## furrr: 157.5sec
-## weird
-# tictoc::tic()
-simdata_missing <- map2(.x = simdata_list, .y = sim_seeds, intro_missing)
-# tictoc::toc()
+dfs_missing <- intro_missing(df = df_org, seed_set = 143)
 
 ```
 
 # 4. Summarize Exposure, Fit Outcome Model
 
+We will apply each exposure summary strategy to each dataset with missingness,
+fit the model appropriately, and extract the estimated beta and standard error.
+
 ## Strategy 1: Ignore Missingness
 
-```{r summarize_ignore}
-## purrr: 355.535
-## furrr: got error
-
+```{r summarize_ignore, eval = FALSE}
 tictoc::tic()
-simdata_ignore <- map(flatten(simdata_missing), summarize_ignore)
+mods_ignore <- map(dfs_missing, summarize_ignore) %>%
+  map_dfr(fit_lm_typical, dfs_outcome = df_out_org, summary_strat = "ignore")
 tictoc::toc()
 
 ```
 
-
 ## Strategy 2: Assume the Worst
 
-```{r summarize_worst}
-## purrr: 230.34
-## furrr: got error
-
+```{r summarize_worst, eval = FALSE}
 tictoc::tic()
-simdata_worst <- map(flatten(simdata_missing), summarize_worst)
+mods_worst <- map(dfs_missing, summarize_worst) %>%
+  map_dfr(fit_lm_typical, dfs_outcome = df_out_org, summary_strat = "worst")
 tictoc::toc()
 
 ```
 
 ## Strategy 3: Delete It (Then Impute)
 
-**will need to redo this with more imputations**
-
-```{r summarize_delete}
-## purrr: 67.757
-## furrr: got error
-
+```{r summarize_delete, eval = FALSE}
 tictoc::tic()
-simdata_delete <- map(flatten(simdata_missing), poss_summarize_delete)
+mods_delete <- map(dfs_missing, poss_summarize_delete, seed_set = 1) %>%
+  ## Some of our datasets are NULL, because it turns out this method falls apart
+  ## when >5% patient-days are missing.
+  ## Throw those out, fit the model on the rest.
+  discard(is.null) %>%
+  map_dfr(fit_lm_impute, dfs_outcome = df_out_org, summary_strat = "delete")
 tictoc::toc()
 
 ```
 
-```{r}
-testlist <- map(
-  simdata_missing[[1]],
-  possibly_summarize_delete, seed_set = 56
-)
-testlist <- testlist[[!is.null(testlist)]]
+## Strategy 4: Impute It On the Daily
 
-testdf <- summarize_delete(df = simdata_missing[[1]][[1]], seed_set = sim_seeds[1])
-
-## Merge with one simulated outcome df, fit imputed model
-test_out <- left_join(testdf$data, outcomedata_list[[1]][[1]], by = "new_id")
-test_out <- subset(test_out, select = c(.imp, new_id, mean_sofa, del_miss, cogscore))
-test_mids <- as.mids(test_out, .id = "new_id")
-test_mod <- with(test_mids, lm(cogscore ~ del_miss)) %>% pool() %>% summary()
-
-est_beta <- test_mod$estimate[match("del_miss", rownames(test_mod))]
-se_beta <- test_mod$std.error[match("del_miss", rownames(test_mod))]
-
-## extract miss_info, true_beta
-
-```
-
-
-
-
-
-## Strategy 4: Impute It
-
-**will need to redo this with more imputations**
-
-```{r summarize_impute}
-## purrr: 
-## furrr: got error
-
+```{r summarize_impute, eval = FALSE}
 tictoc::tic()
-simdata_impute <- map(flatten(simdata_missing), summarize_impute, seed_set = 56)
+mods_impute <- map(dfs_missing, summarize_impute, seed_set = 1) %>%
+  map_dfr(fit_lm_impute, dfs_outcome = df_out_org, summary_strat = "impute")
 tictoc::toc()
 
-```
-
-```{r}
-testdf <- summarize_impute(df = simdata_missing[[1]][[1]], seed_set = sim_seeds[1])
-
-## Merge with one simulated outcome df, fit imputed model
-test_out <- left_join(testdf$data, outcomedata_list[[1]][[1]], by = "new_id")
-test_out <- subset(test_out, select = c(.imp, new_id, mean_sofa, del_miss, cogscore))
-test_mids <- as.mids(test_out, .id = "new_id")
-test_mod <- with(test_mids, lm(cogscore ~ del_miss)) %>% pool() %>% summary()
-
-est_beta <- test_mod$estimate[match("del_miss", rownames(test_mod))]
-se_beta <- test_mod$std.error[match("del_miss", rownames(test_mod))]
-
-## extract miss_info, true_beta
+## One dataset = 1105 seconds. eeek
 
 ```
 
+```{r save_mods, eval = FALSE}
+## So we don't *have* to run that last one again if we don't want to:
+save(mods_ignore, mods_worst, mods_delete, mods_impute,
+     file = "analysisdata/fit_mods.Rdata")
+
+```
+
+```{r load_mods}
+## If we've already run and saved them:
+load("analysisdata/fit_mods.Rdata")
+
+```
+
+Each `mods_xxxx` object is a data.frame, so we just need to combine them:
+
+```{r combine_results}
+df_results <- bind_rows(
+  mods_ignore, mods_worst, mods_delete, mods_impute
+) %>%
+  mutate(df_id = 1)
+
+sample_n(df_results, size = 10)
+
+```
+
+Once we do that for all `r length(simdata_list)` simulated datasets, we'll
+combine, plot and explore the results!
+
+Note that for a little extra fun, you can use the [`BRRR`](https://github.com/brooke-watson/BRRR) package to let you know when all
+that code is done running.
