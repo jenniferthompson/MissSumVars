@@ -1,0 +1,252 @@
+---
+title: Simulating and Assessing Strategies for Summary Variables with Partially Missing
+  Data
+author: "Jennifer Thompson, MPH"
+date: "7/12/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(purrr)
+library(furrr)
+library(dplyr)
+library(mice)
+library(ggplot2)
+
+plan(multiprocess)
+
+```
+
+# Goal
+
+Assess different strategies for summarizing a longitudinal exposure variable
+when we are interested in its association with a long-term outcome. In our
+motivating clinical example, this is represented by summarizing the amount
+(days) of delirium a patient experienced in the hospital and examining its
+association with the patient's score on a cognitive assessment performed twelve
+months after hospitalization.
+
+## Strategies for Summarizing the Exposure
+
+1. **Ignore It**: Summarize delirium duration by tallying only the delirium
+actually observed. Any day with no mental status assessment is considered
+non-delirious by omission.
+
+1. **Assume the Worst**: Assume any day with no mental status assessment *is*
+delirious, so that the total duration is the sum of all observed delirium + all
+missing days.
+
+1. **Deletion**: If any patient-day has no status assessment, we decide that we
+cannot determine the exposure value with certainty, and consider the entire
+summary value to be missing. Missing *summary* values will be multiply imputed,
+using mean severity of illness in the hospital as a covariate; the final model
+will be fit using these imputations.
+
+1. **Impute at the Lowest Hierarchy**: We will keep each patient's available
+daily data, and impute on a *daily* basis values for days that are missing an
+assessment, using that day's severity of illness as a covariate. These imputed
+datasets will then be summarized, and the final model will be fit using these
+summarized imputed datasets.
+
+We will assess the performance of each strategy under different types and
+amounts of missingness, under different associations with the covariate (MAR)
+and the exposure (MNAR).
+
+The functions we will use are sourced from the following R scripts, available
+in this repository.
+
+```{r source_scripts}
+source("introduce_missing.R")
+source("summary_strategies.R")
+source("fit_models.R")
+
+```
+
+# 1. Simulate Datasets from Motivating Example
+
+Please see `simulate_data.R`.
+
+Result: List of 1000 data.frames, stored as RDS in `analysisdata/`.
+
+```{r read_in_simulated}
+simdata_list <- readRDS("analysisdata/simdata.rds")
+head(simdata_list[[1]])
+
+## Create list of length(simdata_list) seeds
+sim_seeds <- 8675309:(8675309 + (length(simdata_list) - 1))
+
+```
+
+# 2. Simulate Outcomes with Specified Association with Exposure
+
+Please see `simulate_outcome.R`.
+
+Result: List of 1000 lists, each with three elements stored as RDS in
+`analysisdata/`. Each element is a data.frame, with the outcome `cogscore`
+having a specified association with the exposure `del_actual`.
+
+```{r read_in_outcomes}
+outcomedata_list <- readRDS("analysisdata/outcomedata.rds")
+head(outcomedata_list[[1]][[1]])
+
+```
+
+For each simulated dataset, we will then:
+
+# 3. Introduce Missingness
+
+We will introduce specific types of missingness to each simulated dataset. For
+each scenario, we will set 5%, 20%, 35%, and 50% of individual patient-days to
+missing.
+
+- Missing Completely at Random (MCAR)
+- Missing at Random (MAR), with the probability of missingness having a weak,
+moderate, and strong association with daily severity of illness
+- Missing Not at Random (MNAR), with the probability of missingness having a
+weak, moderate, and strong association with true daily delirium
+
+We will do this by creating a list of `length(simdata_list)` elements, where
+each element is a list of 28 data.frames, all simulated from the seed data.frame
+with the specified type/amount of missingness added to the `status_miss`
+variable.
+
+```{r introduce_missing}
+intro_missing <- function(df, seed_set){
+  miss_props <- c(0.05, 0.20, 0.35, 0.50)
+  strengths <- c("weak", "mod", "strong")
+  miss_args <- cross2(miss_props, strengths) %>%
+    map(set_names, c("miss_prop", "assoc_strength"))
+  
+  ## MCAR
+  dfs_mcar <- map(miss_props, ~ addmiss_mcar(df = df, seed_set, miss_prop = .))
+  
+  ## MAR
+  dfs_mar <- map2(
+    .x = map(miss_args, pluck, "miss_prop"),
+    .y = map(miss_args, pluck, "assoc_strength"),
+    .f = ~ addmiss_mar(df = df, seed_set, miss_prop = .x, assoc_strength = .y)
+  )
+  
+  ## MNAR
+  dfs_mnar <- map2(
+    .x = map(miss_args, pluck, "miss_prop"),
+    .y = map(miss_args, pluck, "assoc_strength"),
+    .f = ~ addmiss_mnar(df = df, seed_set, miss_prop = .x, assoc_strength = .y)
+  )
+  
+  ## Combine into a single list; each data.frame contains columns which specify
+  ## information about the missingness
+  df_list <- c(dfs_mcar, dfs_mar, dfs_mnar)
+  
+  return(df_list)
+  
+}
+
+## purrr: 38.281sec
+## furrr: 157.5sec
+## weird
+# tictoc::tic()
+simdata_missing <- map2(.x = simdata_list, .y = sim_seeds, intro_missing)
+# tictoc::toc()
+
+```
+
+# 4. Summarize Exposure, Fit Outcome Model
+
+## Strategy 1: Ignore Missingness
+
+```{r summarize_ignore}
+## purrr: 355.535
+## furrr: got error
+
+tictoc::tic()
+simdata_ignore <- map(flatten(simdata_missing), summarize_ignore)
+tictoc::toc()
+
+```
+
+
+## Strategy 2: Assume the Worst
+
+```{r summarize_worst}
+## purrr: 230.34
+## furrr: got error
+
+tictoc::tic()
+simdata_worst <- map(flatten(simdata_missing), summarize_worst)
+tictoc::toc()
+
+```
+
+## Strategy 3: Delete It (Then Impute)
+
+**will need to redo this with more imputations**
+
+```{r summarize_delete}
+## purrr: 67.757
+## furrr: got error
+
+tictoc::tic()
+simdata_delete <- map(flatten(simdata_missing), poss_summarize_delete)
+tictoc::toc()
+
+```
+
+```{r}
+testlist <- map(
+  simdata_missing[[1]],
+  possibly_summarize_delete, seed_set = 56
+)
+testlist <- testlist[[!is.null(testlist)]]
+
+testdf <- summarize_delete(df = simdata_missing[[1]][[1]], seed_set = sim_seeds[1])
+
+## Merge with one simulated outcome df, fit imputed model
+test_out <- left_join(testdf$data, outcomedata_list[[1]][[1]], by = "new_id")
+test_out <- subset(test_out, select = c(.imp, new_id, mean_sofa, del_miss, cogscore))
+test_mids <- as.mids(test_out, .id = "new_id")
+test_mod <- with(test_mids, lm(cogscore ~ del_miss)) %>% pool() %>% summary()
+
+est_beta <- test_mod$estimate[match("del_miss", rownames(test_mod))]
+se_beta <- test_mod$std.error[match("del_miss", rownames(test_mod))]
+
+## extract miss_info, true_beta
+
+```
+
+
+
+
+
+## Strategy 4: Impute It
+
+**will need to redo this with more imputations**
+
+```{r summarize_impute}
+## purrr: 
+## furrr: got error
+
+tictoc::tic()
+simdata_impute <- map(flatten(simdata_missing), summarize_impute, seed_set = 56)
+tictoc::toc()
+
+```
+
+```{r}
+testdf <- summarize_impute(df = simdata_missing[[1]][[1]], seed_set = sim_seeds[1])
+
+## Merge with one simulated outcome df, fit imputed model
+test_out <- left_join(testdf$data, outcomedata_list[[1]][[1]], by = "new_id")
+test_out <- subset(test_out, select = c(.imp, new_id, mean_sofa, del_miss, cogscore))
+test_mids <- as.mids(test_out, .id = "new_id")
+test_mod <- with(test_mids, lm(cogscore ~ del_miss)) %>% pool() %>% summary()
+
+est_beta <- test_mod$estimate[match("del_miss", rownames(test_mod))]
+se_beta <- test_mod$std.error[match("del_miss", rownames(test_mod))]
+
+## extract miss_info, true_beta
+
+```
+
