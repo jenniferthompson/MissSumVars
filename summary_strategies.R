@@ -116,7 +116,7 @@ poss_summarize_delete <- possibly(summarize_delete, otherwise = NULL)
 
 ## -- *Impute daily data* (returns long df that can become a mids() object) ----
 ## Imputing at the lowest hierarchy (?)
-summarize_impute <- function(df, seed_set, nimp_exp = 3, nimp_mod = 3){
+summarize_impute <- function(df, seed_set, nimp = 3){
   
   ## Extract missingness info
   miss_info_names <- c("miss_type", "miss_prop", "assoc")
@@ -138,7 +138,7 @@ summarize_impute <- function(df, seed_set, nimp_exp = 3, nimp_mod = 3){
     subset(df_sub, select = c(sofa_mod, status_miss))
   )
   df_mice <- mice(
-    df_sub, predictorMatrix = imp_matrix, seed = seed_set, nimp = nimp_exp
+    df_sub, predictorMatrix = imp_matrix, seed = seed_set, nimp = nimp
   )
   
   ## Create "complete" (long) version, including original data, which can be
