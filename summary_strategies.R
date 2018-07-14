@@ -66,7 +66,7 @@ summarize_worst <- function(df){
 ## NOTE: This strategy is unreliable at >5% missing (even 5% is questionable!)
 ## 5% yields ~45% patients with missing values
 
-summarize_delete <- function(df, seed_set, nimp = 3){
+summarize_delete <- function(df, seed_set, num_imp = 3){
   
   ## Extract missingness info
   miss_info_names <- c("miss_type", "miss_prop", "assoc")
@@ -91,11 +91,12 @@ summarize_delete <- function(df, seed_set, nimp = 3){
   
   ## Only want to impute with SOFA, status; leave new_id out of it, but we need
   ## to keep it in the data.frame for summarizing and merging
-  imp_matrix <- make.predictorMatrix(
-    subset(df_sub, select = c(mean_sofa, del_miss))
-  )
+  imp_matrix <- make.predictorMatrix(df_sub)
+  imp_matrix["new_id", ] <- 0
+  imp_matrix[, "new_id"] <- 0
+  
   df_mice <- mice(
-    df_sub, predictorMatrix = imp_matrix, seed = seed_set, m = nimp
+    df_sub, predictorMatrix = imp_matrix, seed = seed_set, m = num_imp
   )
   
   ## Create "complete" (long) version, including original data, which can be
@@ -116,7 +117,7 @@ poss_summarize_delete <- possibly(summarize_delete, otherwise = NULL)
 
 ## -- *Impute daily data* (returns long df that can become a mids() object) ----
 ## Imputing at the lowest hierarchy (?)
-summarize_impute <- function(df, seed_set, nimp = 3){
+summarize_impute <- function(df, seed_set, num_imp = 3){
   
   ## Extract missingness info
   miss_info_names <- c("miss_type", "miss_prop", "assoc")
@@ -134,13 +135,14 @@ summarize_impute <- function(df, seed_set, nimp = 3){
   
   ## Only want to impute with SOFA, status; leave new_id out of it, but we need
   ## to keep it in the data.frame for summarizing and merging
-  imp_matrix <- make.predictorMatrix(
-    subset(df_sub, select = c(sofa_mod, status_miss))
-  )
-  df_mice <- mice(
-    df_sub, predictorMatrix = imp_matrix, seed = seed_set, m = nimp
-  )
+  imp_matrix <- make.predictorMatrix(df_sub)
+  imp_matrix["new_id", ] <- 0
+  imp_matrix[, "new_id"] <- 0
   
+  df_mice <- mice(
+    df_sub, predictorMatrix = imp_matrix, seed = seed_set, m = num_imp
+  )
+
   ## Create "complete" (long) version, including original data, which can be
   ## turned back into a mice object once merged with simulated outcome
   df_comp <- complete(df_mice, action = "long", include = TRUE) %>%

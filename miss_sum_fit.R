@@ -32,7 +32,7 @@ miss_sum_fit <- function(
   df_out_org, ## "matching" df with ID, outcome, true relationship between
               ##   exposure and outcome
   seed_set = 8675309, ## Use same seed for anything involving randomness
-  nimp     = 3,       ## #imputations for summarizing exposure variable
+  num_imp     = 3,       ## #imputations for summarizing exposure variable
   df_id       ## integer - grouping variable for dataset
 ){
 
@@ -52,7 +52,7 @@ miss_sum_fit <- function(
   mods_delete <- map(
     dfs_missing,
     poss_summarize_delete,
-    seed_set = seed_set, nimp = nimp
+    seed_set = seed_set, num_imp = num_imp
   ) %>%
     ## Some of our datasets are NULL, because it turns out this method falls apart
     ## when >5% patient-days are missing.
@@ -64,7 +64,7 @@ miss_sum_fit <- function(
   mods_impute <- map(
     dfs_missing,
     summarize_impute,
-    seed_set = seed_set, nimp = nimp
+    seed_set = seed_set, num_imp = num_imp
   ) %>%
     map_dfr(fit_lm_impute, dfs_outcome = df_out_org, summary_strat = "impute")
   
