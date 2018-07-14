@@ -40,7 +40,7 @@ sim_results <- future_pmap_dfr(
   .progress = TRUE
 )
 
-saveRDS(sim_results, file = "analysisdata/sim_results.rds")
+saveRDS(sim_results, file = "results/sim_results.rds")
 
 ## -- Scratch code -------------------------------------------------------------
 # tmp <- miss_sum_fit(
