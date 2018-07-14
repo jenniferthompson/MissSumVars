@@ -8,7 +8,6 @@ library(purrr)
 library(furrr)
 library(dplyr)
 library(mice)
-library(ggplot2)
 
 plan(multiprocess)
 
@@ -21,8 +20,7 @@ simdata_list <- readRDS("analysisdata/simdata.rds")
 outcomedata_list <- readRDS("analysisdata/outcomedata.rds")
 sim_seeds <- 8675309:(8675309 + (length(simdata_list) - 1))
 
-## -- Testing purposes: Let's only do 25 ---------------------------------------
-take_these <- 1:50
+take_these <- 1:1000 ## could change for testing purposes
 
 if(max(take_these) < length(simdata_list)){
   simdata_list <- simdata_list[take_these]
@@ -31,17 +29,18 @@ if(max(take_these) < length(simdata_list)){
 }
 
 ## -- Run miss_sum_fit() on "all" datasets -------------------------------------
-test_sims <- pmap_dfr(
+sim_results <- future_pmap_dfr(
   .l = list(
     df_long = simdata_list,
     df_out_org = outcomedata_list,
     seed_set = sim_seeds,
     df_id = 1:length(simdata_list)
   ),
-  miss_sum_fit, num_imp = 5
+  miss_sum_fit, num_imp = 20,
+  .progress = TRUE
 )
 
-saveRDS(test_sims, file = "analysisdata/test_sims_50.rds")
+saveRDS(sim_results, file = "analysisdata/sim_results.rds")
 
 ## -- Scratch code -------------------------------------------------------------
 # tmp <- miss_sum_fit(
