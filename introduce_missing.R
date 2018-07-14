@@ -167,3 +167,36 @@ addmiss_mnar <- function(
 #   assoc_strength = "mod"
 # )
 # mean(is.na(tmp$status_miss))
+
+## -- Function to introduce *all* types of missingness to specified ------------
+## -- longitudinal dataset, store results in a list of data.frames -------------
+intro_missing <- function(df, seed_set){
+  miss_props <- c(0.05, 0.20, 0.35, 0.50)
+  strengths <- c("weak", "mod", "strong")
+  miss_args <- cross2(miss_props, strengths) %>%
+    map(set_names, c("miss_prop", "assoc_strength"))
+  
+  ## MCAR
+  dfs_mcar <- map(miss_props, ~ addmiss_mcar(df = df, seed_set, miss_prop = .))
+  
+  ## MAR
+  dfs_mar <- map2(
+    .x = map(miss_args, pluck, "miss_prop"),
+    .y = map(miss_args, pluck, "assoc_strength"),
+    .f = ~ addmiss_mar(df = df, seed_set, miss_prop = .x, assoc_strength = .y)
+  )
+  
+  ## MNAR
+  dfs_mnar <- map2(
+    .x = map(miss_args, pluck, "miss_prop"),
+    .y = map(miss_args, pluck, "assoc_strength"),
+    .f = ~ addmiss_mnar(df = df, seed_set, miss_prop = .x, assoc_strength = .y)
+  )
+  
+  ## Combine into a single list; each data.frame contains columns which specify
+  ## information about the missingness
+  df_list <- c(dfs_mcar, dfs_mar, dfs_mnar)
+  
+  return(df_list)
+  
+}
