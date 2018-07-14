@@ -66,7 +66,7 @@ summarize_worst <- function(df){
 ## NOTE: This strategy is unreliable at >5% missing (even 5% is questionable!)
 ## 5% yields ~45% patients with missing values
 
-summarize_delete <- function(df, seed_set, nimp_exp = 3){
+summarize_delete <- function(df, seed_set, nimp = 3){
   
   ## Extract missingness info
   miss_info_names <- c("miss_type", "miss_prop", "assoc")
@@ -95,7 +95,7 @@ summarize_delete <- function(df, seed_set, nimp_exp = 3){
     subset(df_sub, select = c(mean_sofa, del_miss))
   )
   df_mice <- mice(
-    df_sub, predictorMatrix = imp_matrix, seed = seed_set, nimp = nimp_exp
+    df_sub, predictorMatrix = imp_matrix, seed = seed_set, m = nimp
   )
   
   ## Create "complete" (long) version, including original data, which can be
@@ -138,7 +138,7 @@ summarize_impute <- function(df, seed_set, nimp = 3){
     subset(df_sub, select = c(sofa_mod, status_miss))
   )
   df_mice <- mice(
-    df_sub, predictorMatrix = imp_matrix, seed = seed_set, nimp = nimp
+    df_sub, predictorMatrix = imp_matrix, seed = seed_set, m = nimp
   )
   
   ## Create "complete" (long) version, including original data, which can be
