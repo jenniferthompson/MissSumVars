@@ -5,6 +5,7 @@
 
 library(purrr)
 library(dplyr)
+library(BRRR) ## optional, but fun
 
 ## Assumes `df` has columns `new_id` (subject + rep ID) and `status` (which
 ## takes values Normal, Delirious, Comatose) and contains >=1 record per subject
@@ -55,9 +56,11 @@ simdata_list <- readRDS("analysisdata/simdata.rds")
 
 ## Function to get three simulated dfs
 simulate_eachbeta <- function(df){
-  map(c(-1, -3, -5), ~ simulate_cogscore(df = df, bdel = .))
+  map(c(seq(0, -1, -0.2), -3, -5), ~ simulate_cogscore(df = df, bdel = .))
 }
 
 simoutcomes_list <- map(simdata_list, simulate_eachbeta)
 
 saveRDS(simoutcomes_list, file = "analysisdata/outcomedata.rds")
+
+BRRR::skrrrahh("khaled")
