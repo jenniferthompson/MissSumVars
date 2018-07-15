@@ -28,29 +28,78 @@ if(max(take_these) < length(simdata_list)){
   sim_seeds <- sim_seeds[take_these]
 }
 
-## -- Run miss_sum_fit() on "all" datasets -------------------------------------
-sim_results <- future_pmap_dfr(
+# ## -- Run miss_sum_fit() on "all" datasets -------------------------------------
+# sim_results <- future_pmap_dfr(
+#   .l = list(
+#     df_long = simdata_list,
+#     df_out_org = outcomedata_list,
+#     seed_set = sim_seeds,
+#     df_id = 1:length(simdata_list)
+#   ),
+#   miss_sum_fit, num_imp = 20,
+#   .progress = TRUE
+# )
+# 
+# saveRDS(sim_results, file = "results/sim_results.rds")
+
+## -- Run miss_sum_fit() in chunks ---------------------------------------------
+sim_results_250 <- future_pmap_dfr(
   .l = list(
-    df_long = simdata_list,
-    df_out_org = outcomedata_list,
-    seed_set = sim_seeds,
-    df_id = 1:length(simdata_list)
+    df_long = simdata_list[1:250],
+    df_out_org = outcomedata_list[1:250],
+    seed_set = sim_seeds[1:250],
+    df_id = 1:250
   ),
   miss_sum_fit, num_imp = 20,
   .progress = TRUE
 )
 
-saveRDS(sim_results, file = "results/sim_results.rds")
+saveRDS(sim_results_250, file = "results/sim_results_250.rds")
 
-## -- Scratch code -------------------------------------------------------------
-# tmp <- miss_sum_fit(
-#   df_long = simdata_list[[1]],
-#   df_out_org = outcomedata_list[[1]],
-#   seed_set = sim_seeds[1],
-#   num_imp = 3,
-#   df_id = 1
-# )
-# 
-# dfs_missing <- intro_missing(df = simdata_list[[1]], seed_set = 5)
-# dfs_delete <- map(dfs_missing, poss_summarize_delete, seed_set = 10)
-# dfs_impute <- map(dfs_missing, summarize_impute, seed_set = 15)
+sim_results_500 <- future_pmap_dfr(
+  .l = list(
+    df_long = simdata_list[251:500],
+    df_out_org = outcomedata_list[251:500],
+    seed_set = sim_seeds[251:500],
+    df_id = 251:500
+  ),
+  miss_sum_fit, num_imp = 20,
+  .progress = TRUE
+)
+
+saveRDS(sim_results_500, file = "results/sim_results_500.rds")
+
+sim_results_750 <- future_pmap_dfr(
+  .l = list(
+    df_long = simdata_list[501:750],
+    df_out_org = outcomedata_list[501:750],
+    seed_set = sim_seeds[501:750],
+    df_id = 501:750
+  ),
+  miss_sum_fit, num_imp = 20,
+  .progress = TRUE
+)
+
+saveRDS(sim_results_750, file = "results/sim_results_750.rds")
+
+sim_results_1000 <- future_pmap_dfr(
+  .l = list(
+    df_long = simdata_list[751:1000],
+    df_out_org = outcomedata_list[751:1000],
+    seed_set = sim_seeds[751:1000],
+    df_id = 751:1000
+  ),
+  miss_sum_fit, num_imp = 20,
+  .progress = TRUE
+)
+
+saveRDS(sim_results_1000, file = "results/sim_results_1000.rds")
+
+## purrr vs furrr info
+## With 10 datasets and three betas (0, -0.25, -0.5):
+## furrr = 294.651sec
+## purrr = 677.094sec
+## !!!!!
+## furrr with five betas: 324.07
+
+BRRR::skrrrahh("biggie") ## optional, but fun
