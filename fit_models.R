@@ -9,6 +9,37 @@
 ## data.frame) and $miss_info (metadata about missingness in longitudinal
 ## dataset that was then summarized)
 
+## -- Prep functions: Extract delirium info from model objects, put in df ------
+results_lm <- function(mod, vars = "del_miss"){
+  sum_mod <- as.data.frame(
+    cbind(
+      coef(summary(mod)), ## coefficients, SEs, t statistic, p-value
+      mod$df.residual,    ## residual df
+      confint(mod)        ## 2.5%, 97.5% confidence limits
+    )
+  )
+  ## Only want row for exposure variable
+  del_info <- sum_mod[rownames(sum_mod) %in% vars, ]
+  del_info <- set_names(
+    del_info,
+    c("est_beta", "se_beta", "tvalue", "pvalue", "df", "lcl", "ucl")
+  )
+  return(
+    del_info[, c("est_beta", "se_beta", "tvalue", "df", "pvalue", "lcl", "ucl")]
+  )
+}
+
+results_mice <- function(mod, vars = "del_miss"){
+  sum_mod <- summary(pool(mod), conf.int = TRUE)
+  ## Only want row for exposure variable
+  del_info <- sum_mod[rownames(sum_mod) %in% vars, ]
+  del_info <- set_names(
+    del_info,
+    c("est_beta", "se_beta", "tvalue", "df", "pvalue", "lcl", "ucl")
+  )
+  return(del_info)
+}
+
 ## -- For data summarized using the "ignore" and "worst" strategies ------------
 fit_lm_typical <- function(
   df_summarized, ## data.frame; result of summarize_ignore(), summarize_worst()
@@ -20,25 +51,19 @@ fit_lm_typical <- function(
     dfs_outcome, ~ left_join(df_summarized$data, ., by = "new_id")
   )
   
-  ## Fit linear models
+  ## Fit, summarize linear models
   mods <- map(dfs_merged, ~ lm(cogscore ~ del_miss, data = .))
-  
-  ## Create data.frame of final results
-  miss_info <- bind_rows(
-    replicate(length(mods), df_summarized$miss_info, simplify = FALSE)
-  )
-  mod_results <- bind_cols(
-    list(
-      strategy = rep(summary_strat, length(dfs_outcome)),
-      true_beta = map_dbl(dfs_outcome, ~ unique(.$true_beta)),
-      est_beta = map_dbl(mods, ~ pluck(coef(.), "del_miss")),
-      se_beta = map_dbl(mods, ~ sqrt(vcov(.)["del_miss", "del_miss"]))
+  mod_results <- map_dfr(mods, results_lm) %>%
+    ## Add info about missingness scenario, true association
+    mutate(
+      miss_type = df_summarized$miss_info$miss_type,
+      miss_prop = df_summarized$miss_info$miss_prop,
+      assoc     = df_summarized$miss_info$assoc,
+      strategy  = summary_strat,
+      true_beta = map_dbl(dfs_outcome, ~ unique(.$true_beta))
     )
-  )
   
-  return(
-    bind_cols(miss_info, mod_results)
-  )
+  return(mod_results)
   
 }
 
@@ -59,27 +84,19 @@ fit_lm_impute <- function(
     dfs_outcome, ~ left_join(df_summarized$data, ., by = "new_id")
   )
   
-  ## Fit linear models
+  ## Fit, summarize linear models
   mods <- map(dfs_merged, as.mids, .id = "new_id") %>%
-    map(~ with(., lm(cogscore ~ del_miss))) %>%
-    map(mice::pool)
-
-  ## Create data.frame of final results
-  miss_info <- bind_rows(
-    replicate(length(mods), df_summarized$miss_info, simplify = FALSE)
-  )
-  
-  mod_results <- bind_cols(
-    list(
-      strategy = rep(summary_strat, length(dfs_outcome)),
-      true_beta = map_dbl(dfs_outcome, ~ unique(.$true_beta)),
-      est_beta = map_dbl(mods, pluck, "pooled", "estimate", 2),
-      se_beta = map_dbl(mods, pluck, "pooled", "t", 2) %>% sqrt()
+    map(~ with(., lm(cogscore ~ del_miss)))
+  mod_results <- map_dfr(mods, results_mice) %>%
+    ## Add info about missingness scenario, true association
+    mutate(
+      miss_type = df_summarized$miss_info$miss_type,
+      miss_prop = df_summarized$miss_info$miss_prop,
+      assoc     = df_summarized$miss_info$assoc,
+      strategy  = summary_strat,
+      true_beta = map_dbl(dfs_outcome, ~ unique(.$true_beta))
     )
-  )
-
-  return(
-    bind_cols(miss_info, mod_results)
-  )
+  
+  return(mod_results)
   
 }
