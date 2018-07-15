@@ -55,6 +55,7 @@ sim_results_250 <- future_pmap_dfr(
 )
 
 saveRDS(sim_results_250, file = "results/sim_results_250.rds")
+BRRR::skrrrahh("biggie") ## optional, but fun
 
 sim_results_500 <- future_pmap_dfr(
   .l = list(
@@ -68,6 +69,7 @@ sim_results_500 <- future_pmap_dfr(
 )
 
 saveRDS(sim_results_500, file = "results/sim_results_500.rds")
+BRRR::skrrrahh("biggie") ## optional, but fun
 
 sim_results_750 <- future_pmap_dfr(
   .l = list(
@@ -81,6 +83,7 @@ sim_results_750 <- future_pmap_dfr(
 )
 
 saveRDS(sim_results_750, file = "results/sim_results_750.rds")
+BRRR::skrrrahh("biggie") ## optional, but fun
 
 sim_results_1000 <- future_pmap_dfr(
   .l = list(
@@ -94,6 +97,7 @@ sim_results_1000 <- future_pmap_dfr(
 )
 
 saveRDS(sim_results_1000, file = "results/sim_results_1000.rds")
+BRRR::skrrrahh("biggie") ## optional, but fun
 
 ## purrr vs furrr info
 ## With 10 datasets and three betas (0, -0.25, -0.5):
@@ -101,5 +105,3 @@ saveRDS(sim_results_1000, file = "results/sim_results_1000.rds")
 ## purrr = 677.094sec
 ## !!!!!
 ## furrr with five betas: 324.07
-
-BRRR::skrrrahh("biggie") ## optional, but fun
