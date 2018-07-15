@@ -32,9 +32,7 @@ fit_lm_typical <- function(
       strategy = rep(summary_strat, length(dfs_outcome)),
       true_beta = map_dbl(dfs_outcome, ~ unique(.$true_beta)),
       est_beta = map_dbl(mods, ~ pluck(coef(.), "del_miss")),
-      se_beta = map_dbl(mods, ~ vcov(.)["del_miss", "del_miss"])
-      ## BUG: This is actually the variance, not the SE. WHOOPS. Must correct
-      ##  this when presenting results. If I have time, will rerun.
+      se_beta = map_dbl(mods, ~ sqrt(vcov(.)["del_miss", "del_miss"]))
     )
   )
   
@@ -76,9 +74,7 @@ fit_lm_impute <- function(
       strategy = rep(summary_strat, length(dfs_outcome)),
       true_beta = map_dbl(dfs_outcome, ~ unique(.$true_beta)),
       est_beta = map_dbl(mods, pluck, "pooled", "estimate", 2),
-      se_beta = map_dbl(mods, pluck, "pooled", "ubar", 2)
-      ## BUG: This is actually the variance, not the SE. WHOOPS. Must correct
-      ##  this when presenting results. If I have time, will rerun.
+      se_beta = map_dbl(mods, pluck, "pooled", "t", 2) %>% sqrt()
     )
   )
 
