@@ -36,68 +36,43 @@ if(max(take_these) < length(simdata_list)){
 #     seed_set = sim_seeds,
 #     df_id = 1:length(simdata_list)
 #   ),
-#   miss_sum_fit, num_imp = 20,
+#   miss_sum_fit, num_imp = 3,
 #   .progress = TRUE
 # )
-# 
+
 # saveRDS(sim_results, file = "results/sim_results.rds")
 
 ## -- Run miss_sum_fit() in chunks ---------------------------------------------
-sim_results_250 <- future_pmap_dfr(
-  .l = list(
-    df_long = simdata_list[1:250],
-    df_out_org = outcomedata_list[1:250],
-    seed_set = sim_seeds[1:250],
-    df_id = 1:250
-  ),
-  miss_sum_fit, num_imp = 20,
-  .progress = TRUE
+run_sim_results <- function(start_id, end_id){
+  sim_chunk <- future_pmap_dfr(
+    .l = list(
+      df_long = simdata_list[start_id:end_id],
+      df_out_org = outcomedata_list[start_id:end_id],
+      seed_set = sim_seeds[start_id:end_id],
+      df_id = start_id:end_id
+    ),
+    miss_sum_fit, num_imp = 20,
+    .progress = TRUE
+  )
+  saveRDS(
+    sim_chunk,
+    file = sprintf("results/sim_results_%s_%s.rds", start_id, end_id)
+  )
+  BRRR::skrrrahh(sample(c("biggie", "khaled"), size = 1)) ## optional, but fun
+}
+
+# ## Test function
+# walk2(
+#   .x = c(1, 3),
+#   .y = c(2, 4),
+#   .f = run_sim_results
+# )
+
+walk2(
+  .x = seq(1, 901, 100),
+  .y = seq(100, 1000, 100),
+  .f = run_sim_results
 )
-
-saveRDS(sim_results_250, file = "results/sim_results_250.rds")
-BRRR::skrrrahh("biggie") ## optional, but fun
-
-sim_results_500 <- future_pmap_dfr(
-  .l = list(
-    df_long = simdata_list[251:500],
-    df_out_org = outcomedata_list[251:500],
-    seed_set = sim_seeds[251:500],
-    df_id = 251:500
-  ),
-  miss_sum_fit, num_imp = 20,
-  .progress = TRUE
-)
-
-saveRDS(sim_results_500, file = "results/sim_results_500.rds")
-BRRR::skrrrahh("biggie") ## optional, but fun
-
-sim_results_750 <- future_pmap_dfr(
-  .l = list(
-    df_long = simdata_list[501:750],
-    df_out_org = outcomedata_list[501:750],
-    seed_set = sim_seeds[501:750],
-    df_id = 501:750
-  ),
-  miss_sum_fit, num_imp = 20,
-  .progress = TRUE
-)
-
-saveRDS(sim_results_750, file = "results/sim_results_750.rds")
-BRRR::skrrrahh("biggie") ## optional, but fun
-
-sim_results_1000 <- future_pmap_dfr(
-  .l = list(
-    df_long = simdata_list[751:1000],
-    df_out_org = outcomedata_list[751:1000],
-    seed_set = sim_seeds[751:1000],
-    df_id = 751:1000
-  ),
-  miss_sum_fit, num_imp = 20,
-  .progress = TRUE
-)
-
-saveRDS(sim_results_1000, file = "results/sim_results_1000.rds")
-BRRR::skrrrahh("biggie") ## optional, but fun
 
 ## purrr vs furrr info
 ## With 10 datasets and three betas (0, -0.25, -0.5):
