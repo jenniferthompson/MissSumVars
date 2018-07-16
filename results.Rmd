@@ -1,0 +1,168 @@
+---
+title: "Summarizing/Visualizing Simulation Results"
+author: "Jennifer Thompson, MPH, and Rameela Chandrasekhar, PhD"
+date: "7/14/2018"
+output:
+  html_document:
+    theme: flatly
+---
+
+```{r setup, include=FALSE}
+library(purrr)
+library(dplyr)
+library(tidyr)
+library(forcats)
+library(ggplot2)
+
+## Load and combine simulation results, all stored in results/ in chunks of 250
+sim_files <- list.files("results", pattern = "*\\.rds$")
+sim_results <- map(paste0("results/", sim_files), readRDS) %>% bind_rows() 
+
+```
+
+## Calculate Quantities for Each Scenario
+
+```{r calc_quants}
+## Bias: Mean of betas - true beta
+## SE: Mean estimated SEs
+## CI width: mean width of the (95%) confidence interval
+## Power: % of reps where estimate CI does not include 0
+## Coverage: % of reps where estimate CI includes true beta
+
+sim_results2 <- sim_results %>%
+  mutate(
+    ## "delete" and "impute" are confusing since they both involve imputation;
+    ## change to "impute summary" and "impute daily"
+    strategy = ifelse(strategy == "delete", "impute summary",
+               ifelse(strategy == "impute", "impute daily",
+                      strategy)),
+    ## Calculate bias
+    bias = est_beta - true_beta,
+    ## Calculate CI width
+    ci_width = ucl - lcl,
+    ## Indicators for power, coverage
+    power = pvalue < 0.05,
+    coverage = true_beta >= lcl & true_beta <= ucl
+  )
+
+sim_results_grouped <- sim_results2 %>%
+  group_by(miss_type, miss_prop, assoc, strategy, true_beta) %>%
+  summarise_at(
+    vars(bias, se_beta, ci_width, power, coverage), mean
+  ) %>%
+  ungroup()
+
+## Create long format for faceted plotting
+sim_results_long <- sim_results_grouped %>%
+  gather(key = quantity_name, value = quantity_value, bias:coverage) %>%
+  ## Create proper factors for plotting
+  mutate(
+    quantity_f = factor(
+      case_when(
+        quantity_name == "bias"     ~ 1,
+        quantity_name == "se_beta"  ~ 2,
+        quantity_name == "ci_width" ~ 3,
+        quantity_name == "coverage" ~ 4,
+        quantity_name == "power"    ~ 5,
+        TRUE ~ as.numeric(NA)
+      ),
+      levels = 1:5,
+      labels = c("Bias", "Std Error", "CI Width", "Coverage", "Power")
+    ),
+    prop_f = paste0(round(miss_prop * 100), "% Missing"),
+    prop_f = fct_reorder(prop_f, miss_prop),
+    strategy = factor(
+      case_when(
+        strategy == "ignore" ~ 1,
+        strategy == "worst" ~ 2,
+        strategy == "impute summary" ~ 3,
+        strategy == "impute daily" ~ 4,
+        TRUE ~ as.numeric(NA)
+      ),
+      levels = 1:4,
+      labels = c(
+        "Ignore (NA = no exp)", "Worst (NA = exp)",
+        "Impute summary value", "Impute daily value"
+      )
+    )
+  )
+
+## Dataset of reference lines
+## Bias, SE/CI width: 0
+## Coverage: 95%
+## Power: 80%
+sim_refs <- data.frame(
+  quantity_f = factor(
+    1:5,
+    levels = 1:5,
+    labels = c("Bias", "Std Error", "CI Width", "Coverage", "Power")
+  ),
+  ref_value = c(0, 0, 0, 0.95, 0.8)
+)
+
+```
+
+# MCAR Results
+
+```{r plot_mcar}
+mcar_plot <- ggplot(
+  data = subset(
+    sim_results_long, miss_type == "mcar" & !(strategy == "Impute summary value")
+  )
+) +
+  aes(x = true_beta, y = quantity_value, group = strategy) +
+  facet_grid(quantity_f ~ prop_f, scales = "free_y") +
+  geom_hline(
+    aes(yintercept = ref_value),
+    colour = "grey50", linetype = "dotdash", alpha = 0.5, size = 1, data = sim_refs
+  ) +
+  geom_line(aes(colour = strategy), alpha = 0.5) +
+  geom_point(aes(colour = strategy)) +
+  labs(
+    title = "MCAR (First 250 Datasets)"
+  ) +
+  scale_colour_discrete(name = "Strategy") +
+  scale_x_continuous(
+    breaks = c(-5, -3, -1, 0),
+    minor_breaks = seq(-0.8, -0.2, 0.2),
+    name = "True Association, Exposure vs Outcome"
+  ) +
+  theme_bw() +
+  theme(
+    axis.title.y = element_blank()
+  )
+
+ggsave(
+  filename = "mcar_plot.pdf",
+  mcar_plot,
+  path = "results",
+  device = "pdf",
+  width = 10, height = 8, units = "in"
+)
+
+
+```
+
+# MAR Results, Strong Association between SOI and Missingness
+
+```{r plot_mar_strong}
+ggplot(data = subset(sim_results_long, miss_type == "mar")) +
+  aes(x = true_beta, y = quantity_value, group = strategy) +
+  facet_grid(quantity_f ~ miss_prop + assoc, scales = "free_y") +
+  geom_line(aes(colour = strategy)) +
+  geom_point(aes(colour = strategy)) +
+  ggtitle("MAR (First 250 Datasets)")
+
+```
+
+# MNAR Results, Strong Association between SOI and Missingness
+
+```{r plot_mnar_strong}
+ggplot(data = subset(sim_results_long, miss_type == "mnar")) +
+  aes(x = true_beta, y = quantity_value, group = strategy) +
+  facet_grid(quantity_f ~ miss_prop + assoc, scales = "free_y") +
+  geom_line(aes(colour = strategy)) +
+  geom_point(aes(colour = strategy)) +
+  ggtitle("MNAR (First 250 Datasets)")
+
+```
