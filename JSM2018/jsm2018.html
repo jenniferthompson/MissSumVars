@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Analyzing Summary Variables in the Presence of Partially Missing Longitudinal Data</title>
+    <meta charset="utf-8">
+    <meta name="author" content="Jennifer L Thompson, MPH Rameela Chandrasekhar, PhD" />
+    <meta name="date" content="2018-07-30" />
+    <link href="jsm2018_files/remark-css/robot-fonts.css" rel="stylesheet" />
+    <link href="jsm2018_files/remark-css/default.css" rel="stylesheet" />
+    <link rel="stylesheet" href="css/footers.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# Analyzing Summary Variables in the Presence of Partially Missing Longitudinal Data
+### Jennifer L Thompson, MPH<br>Rameela Chandrasekhar, PhD
+### 2018-07-30
+
+---
+
+
+## TODO
+
+Make the title slide better.
+
+- Add Twitter, Github?
+- Footer with link to repo
+
+
+
+---
+
+# Our Motivation
+
+![](presfigures/manualfigs/exposure_only.png)&lt;!-- --&gt;
+
+???
+
+- Work with a research group which focuses on critically ill
+- Many projects involve both an in-hospital and one or more long-term components:
+    - Cognitive impairment
+    - Functional impairment and quality of life
+    - Mortality
+- So often our exposure of interest is measured daily while the patient is hospitalized
+- Here, we have a patient who was hospitalized for five days, had the exposure of interest on three days and no exposure on the other two
+
+---
+
+# Our Motivation
+
+![](presfigures/manualfigs/exposure_outcome.png)&lt;!-- --&gt;
+
+--
+
+Is more delirium *(in-hospital brain dysfunction)* associated with scores on a cognitive test after hospital discharge?
+
+![](presfigures/manualfigs/brains.png)&lt;!-- --&gt;
+
+???
+
+Then we might want to somehow summarize that exposure and see if it's related to some long-term outcome.
+
+**SLIDE**
+
+BRAIN-ICU cohort:
+- published in 2013
+- interested in whether the duration or amount of delirium a patient experienced in the hospital was associated with performance on a test of cognitive ability up to a year after they were discharged
+
+Other possible examples:
+
+- More severe sepsis -&gt; higher rate of long-term death among survivors?
+- Average (min, max) severity of illness related to functional outcomes?
+
+---
+class: inverse, center, middle
+
+# The Problem
+
+.pull-left[
+### Prospective cohort
+
+&lt;img src="presfigures/prosp_vismiss.png" width="2667" /&gt;
+*BRAIN-ICU Cohort Study, NEJM 2013*
+]
+
+--
+
+.pull-right[
+### Retrospective EMR
+&lt;img src="presfigures/retro_vismiss.png" width="2667" /&gt;
+]
+
+???
+
+Describe visdat:
+- From BRAIN-ICU study
+- Purple = not missing, yellow = a day with no delirium assessment
+- Low proportion of patient-days missing
+- This is often the case for our **prospective** studies, thanks to our excellent staff of research coordinators
+- Reason to believe missingness or more or less completely at random - patient in a procedure, for example
+- So in BRAIN we did single imputation to "fill these in" and summarize our exposure, but not a big deal; little worry about bias
+
+**And then...**
+
+- Interested in a retrospective study using EMR data in a trauma unit, same exposure (different outcomes)
+- Delirium assessments are done, but not as often as in medical or surgical units
+- *change slides*
+- In fact, nearly 1/3 of our in-hospital days are missing the delirium assessment
+- This missingness is almost certainly NOT at random
+    - Severely ill patients might be ventilated, comatose; perhaps staff didn't think assessment was necessary, but we can't necessarily tell that they were comatose from the data
+    - Alternately: less sick patients who are up, walking, having conversation may also not have gotten assessed, because the staff thinks it's clear that they're fine
+- In other words, using data collected for clinical purposes for research has challenges!
+
+So, how to deal with the missingness in the way that gives us least bias?
+
+Four strategies:
+
+---
+
+# Strategies: Simple
+
+.pull-left[
+  ### Assume the "best"
+  *Only count the exposure we know about*
+  
+&lt;img src="presfigures/ignore.png" width="267" /&gt;
+]
+
+--
+
+.pull-right[
+  ### Assume the "worst"
+  *All missing time points get exposure*
+
+&lt;img src="presfigures/worst.png" width="267" /&gt;
+]
+
+--
+
+**Pros**: Straightforward to implement; plausible, *if* we know a lot about data collection
+  
+**Cons**: Prone to bias
+
+---
+
+background-image: url(presfigures/imputesummary.png)
+background-size: 328px
+background-position: 90% 35%
+
+# Strategies: Imputation
+
+.left[
+  ### Assume nothing
+  
+  1. If subject missing any time point,&lt;br&gt;
+  entire summary value = `NA`
+  1. Multiply impute missing *summary values*&lt;br&gt;
+  before modeling
+]
+--
+&lt;br&gt;
+&lt;br&gt;
+.pull-left[
+**Pros**:
+  - Fairly simple to implement
+  - Acknowledges uncertainty
+]
+
+.pull-right[
+**Cons**:
+  - Ignores the data we *do* have
+  - Likely to *overestimate* uncertainty
+]
+
+---
+background-image: url(presfigures/imputedaily.png)
+background-size: 365px
+background-position: 90% 35%
+
+# Strategies: Imputation
+
+.left[
+  ### Assume the minimum
+  
+  1. Multiply impute missing *time points*
+  1. Summarize each imputed dataset
+  1. Use these imputed summary&lt;br&gt;datasets when modeling
+]
+
+--
+
+.pull-left[
+**Pros**:
+  - Maximizes use of data we have
+  - Fewest assumptions about missing values
+]
+
+.pull-right[
+**Cons**:
+  - Computation time
+  - Data wrangling
+]
+
+---
+
+# Simulations
+
+- 5%, 20%, 35%, 50% of patient-days missing exposure value
+- Types of missingness:
+    - MCAR
+    - MAR
+        - Missingness in exposure weakly, moderately, strongly associated with daily severity of illness
+    - MNAR
+        - Missingness in exposure weakly, moderately, strongly associated with true exposure value
+- True relationship with outcome: ranges from 0 to -5
+- Imputation methods incorporate severity of illness
+
+---
+
+class: inverse, center, middle
+
+# BIAS
+
+---
+class: inverse
+
+background-image: url(presfigures/bias.png)
+background-size: cover
+
+???
+
+1. Vertical panels = percent missing
+1. Horizontal panels = type of missingness
+1. X axis = true association between exposure and outcome
+1. Y axis = bias
+1. For MAR, weak/moderate/strong indicates the strength of association between missingness and a covariate - in our case, severity of illness
+1. For MNAR, weak/moderate/strong indicates the strength of association between missingness and the true value of our daily exposure
+
+---
+
+class: inverse, center, middle
+
+# STANDARD ERRORS/&lt;br&gt;CI WIDTH
+
+---
+
+background-image: url(presfigures/se_beta.png)
+background-size: cover
+
+---
+
+background-image: url(presfigures/ci_width.png)
+background-size: cover
+
+---
+
+class: inverse, center, middle
+
+# COVERAGE
+
+---
+
+background-image: url(presfigures/coverage.png)
+background-size: cover
+
+---
+
+class: inverse, center, middle
+
+# POWER
+
+---
+
+background-image: url(presfigures/power.png)
+background-size: cover
+
+---
+
+# Real Life
+
+.left-column[
+- Duration of exposure vs outcome in two real-world studies
+- Three strategies to summarize duration of exposure
+]
+
+--
+
+.right-column[
+
+&lt;img src="presfigures/realworld.png" width="3733" /&gt;
+]
+
+---
+
+background-image: url(presfigures/missingdata.jpg)
+background-position: 5% 40%
+
+class: middle, inverse
+
+.pull-right[
+  ### Future Exploration
+
+  - Continuous exposure
+  - Different relationships between&lt;br&gt;covariates/exposure and missingness
+]
+
+.pull-right[
+  ### Acknowledgements
+
+  - VUMC CIBS Center Principal Investigators
+  - Stef van Buuren for mice
+  - Davis Vaughn, Henrik Bengetsson for furrr and futures
+  - Brooke Watson for BRRR
+  
+]
+
+&lt;div class="photo-footer"&gt;&lt;i&gt;Photo used by permission of &lt;a href = http://bit.ly/etsy-missing&gt;NausicaaDistribution Etsy shop&lt;/a&gt;, bit.ly/etsy-missing&lt;/i&gt;&lt;/div&gt;
+    </textarea>
+<script src="libs/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function() {
+  var d = document, s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})();</script>
+
+<script>
+(function() {
+  var i, text, code, codes = document.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+})();
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

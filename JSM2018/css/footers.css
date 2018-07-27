@@ -1,0 +1,14 @@
+div.photo-footer {
+  font-size: 12pt;
+  position: absolute;
+  bottom: 15px;
+  left: 15px;
+  height: 15px;
+  width: 100%;
+}
+div.photo-footer span {
+  color: #FFFFFF;
+  position: absolute;
+  left: 15px;
+  bottom: 15px;
+}
