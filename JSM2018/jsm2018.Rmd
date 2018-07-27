@@ -18,6 +18,8 @@ Make the title slide better.
 
 - Add Twitter, Github?
 - Footer with link to repo
+- Improve results figures
+- Update README
 
 ```{r setup, include=FALSE}
 options(htmltools.dir.version = FALSE)
@@ -30,7 +32,7 @@ knitr::opts_chunk$set(echo = FALSE)
 # Our Motivation
 
 ```{r}
-knitr::include_graphics("presfigures/manualfigs/exposure_only.png")
+knitr::include_graphics("presfigures/exposure_only.png")
 ```
 
 ???
@@ -48,7 +50,7 @@ knitr::include_graphics("presfigures/manualfigs/exposure_only.png")
 # Our Motivation
 
 ```{r}
-knitr::include_graphics("presfigures/manualfigs/exposure_outcome.png")
+knitr::include_graphics("presfigures/exposure_outcome.png")
 ```
 
 --
@@ -56,7 +58,7 @@ knitr::include_graphics("presfigures/manualfigs/exposure_outcome.png")
 Is more delirium *(in-hospital brain dysfunction)* associated with scores on a cognitive test after hospital discharge?
 
 ```{r}
-knitr::include_graphics("presfigures/manualfigs/brains.png")
+knitr::include_graphics("presfigures/brains.png")
 ```
 
 ???
