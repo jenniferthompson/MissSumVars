@@ -1,6 +1,6 @@
 ## Strategies for Analyzing Summary Variables in the Presence of Partially Missing Longitudinal Data
 
-First presented at JSM 2018, Vancouver. Code for creating that presentation, including all visuals, is in the `JSM2018/` directory. Slides (HTML) are at [bit.ly/jlt-jsm2018](https://jenthompson.me/slides/jsm2018/jsm2018#1).
+First presented at JSM 2018, Vancouver. Code for creating that presentation, including all visuals, is in the `JSM2018/` directory. Slides (HTML) are at [bit.ly/jlt-jsm2018](https://jenthompson.me/slides/jsm2018/jsm2018#1); a PDF version is [here](https://github.com/jenniferthompson/MissSumVars/blob/master/JSM2018/jsm2018_slides.pdf).
 
 ### Scripts
 
