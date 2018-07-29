@@ -1,7 +1,7 @@
 ---
 title: "Analyzing Summary Variables in the Presence of Partially Missing Longitudinal Data"
 author: "Jennifer L Thompson, MPH<br>Rameela Chandrasekhar, PhD<br>Vanderbilt University Medical Center"
-date: "JSM 2018<br>bit.ly/"
+date: "bit.ly/jlt-jsm2018"
 output:
   xaringan::moon_reader:
     chakra: libs/remark-latest.min.js
@@ -399,11 +399,12 @@ background-size: cover
 ]
 
 .right[
-<br><br><br><br><br><br><br><br>
-<a href="http://twitter.com/jent103"><i class="fa fa-twitter fa-fw"></i>&nbsp; @jent103</a><br>
-<a href="http://github.com/jenniferthompson"><i class="fa fa-github fa-fw"></i>&nbsp; @jenniferthompson</a><br>
+<br><br><br><br><br><br><br>
+<a href="https://jenthompson.me"><i class="fas fa-hand-point-right"></i>&nbsp;bit.ly/jlt-jsm2018</a><br>
+<a href="http://twitter.com/jent103"><i class="fab fa-twitter"></i>&nbsp; @jent103</a><br>
+<a href="http://github.com/jenniferthompson"><i class="fab fa-github"></i>&nbsp; @jenniferthompson</a><br>
 <a href="mailto:j.thompson@vumc.org"><i class="fa fa-paper-plane fa-fw"></i>&nbsp; j.thompson@vumc.org</a><br>
-<a href="https://jenthompson.me"><i class="fa fa-link fa-fw"></i>&nbsp; jenthompson.me/resources</a>
+<a href="https://jenthompson.me"><i class="fa fa-link fa-fw"></i>&nbsp; jenthompson.me</a><br>
 ]
 
 ???
