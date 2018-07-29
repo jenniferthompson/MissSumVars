@@ -1,7 +1,7 @@
 ---
 title: "Analyzing Summary Variables in the Presence of Partially Missing Longitudinal Data"
 author: "Jennifer L Thompson, MPH<br>Rameela Chandrasekhar, PhD<br>Vanderbilt University Medical Center"
-date: "bit.ly/jlt-jsm2018"
+date: 'Slides: bit.ly/jlt-jsm2018<br><a href="http://github.com/jenniferthompson/MissSumVars"><i class="fab fa-github"></i>&nbsp; jenniferthompson/MissSumVars</a><br>'
 output:
   xaringan::moon_reader:
     chakra: libs/remark-latest.min.js
