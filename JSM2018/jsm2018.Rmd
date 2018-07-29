@@ -1,13 +1,13 @@
 ---
 title: "Analyzing Summary Variables in the Presence of Partially Missing Longitudinal Data"
 author: "Jennifer L Thompson, MPH<br>Rameela Chandrasekhar, PhD<br>Vanderbilt University Medical Center"
-date: 'Slides: bit.ly/jlt-jsm2018<br><a href="http://github.com/jenniferthompson/MissSumVars"><i class="fab fa-github"></i>&nbsp; jenniferthompson/MissSumVars</a><br>'
+date: 'bit.ly/jlt-jsm2018<br><a href="http://github.com/jenniferthompson/MissSumVars"><i class="fab fa-github"></i>&nbsp; jenniferthompson/MissSumVars</a><br><a href="http://twitter.com/jent103"><i class="fab fa-twitter"></i>&nbsp; @jent103</a><br>'
 output:
   xaringan::moon_reader:
     chakra: libs/remark-latest.min.js
-    css: ["robot-fonts", "default", "css/footers.css", "css/my-theme.css"]
+    css: ["robot-fonts", "css/footers.css", "css/my-theme.css", "default"]
     nature:
-      titleSlideClass: ["right", "top", "inverse"]
+      titleSlideClass: ["left", "top", "inverse"]
       countIncrementalSlides: false
     includes:
       in_header: header.html
@@ -271,11 +271,11 @@ First I'll describe the setup:
 
 Main points:
 
-- Note that only one row has a blue line. That represents our third approach, imputing the entire summary value when the patient has even one day missing. As we might expect, that approach performed really terribly; even at 5% missing, the bias there quickly outpaced any other approach. It turns out that once you have a decent amount of patient-days missing, this approaches forces so many overall summary values to be missing that it's just untenable. So our first message is... don't do that.
+- Note that only one row has a blue line. That represents our third approach, imputing the entire summary value when the patient has even one day missing. As we might expect, that approach performed really terribly; even at 5% missing, the bias there quickly outpaced any other approach. It turns out that once you have a decent amount of patient-days missing, this approaches forces so many overall summary values to be missing that it's just untenable, and we really couldn't justify the simulations with more missingness. So our first message is... don't do that.
 - Obviously our bias gets worse as the amount of missingness increases, and is also worse when our exposure is not missing at random. No surprises there.
-- When our data is missing completely at random, or missing at random, our daily imputation approach has the least bias. Between the other two approaches, as missingness gets more prevalent, it looks like cynicism is actually paying off, since assuming all missingness gets the exposure is a little less biased than our optimistic approach.
-- When our exposure is not missing at random, but the association between the exposure and missingness isn't very strong, those statements all still apply - this column looks pretty much like the ones to the left.
-- Once we have a stronger relationship between the exposure and missingness, though, the differences become more striking. Assuming our missing days are unexposed - effectively *ignoring* the missingness - starts to do really, really badly in comparison. Assuming the worst and imputing daily are running pretty neck and neck, just in opposite directions, *unless* there's a strong chance that if our data is missing, the patient truly did have the exposure - in other words, our missingness is quite informative. In that case, assuming missing indicates exposure is less biased than trying to impute with our covariates.
+- When our data is missing completely at random, or missing at random, our daily imputation approach has the least bias.
+- Between the other two approaches, as missingness gets more prevalent, it looks like cynicism is actually paying off, since assuming all missingness gets the exposure is a little less biased than our optimistic approach.
+- Once we have a stronger relationship between the exposure and missingness, though, the differences become more striking. Assuming our missing days are unexposed - the yellow line, effectively *ignoring* the missingness - starts to do really badly in comparison. If there's a strong chance that missingness truly indicates the presence of the exposure - in other words, our missingness is quite informative - then using this "missing = exposed" approach is less biased than trying to impute in our scenario, we had some, but not a ton of covariate data with which to impute.
 
 ---
 
@@ -297,7 +297,7 @@ background-size: cover
 
 This slide is for those of you who prefer your variance estimates in terms of confidence intervals.
 
-More generally, we see that assuming missingness indicates exposure leads to less variance to some extent than the other two methods. When data is missing at random or missing completely at random, this isn't a major issue until you have a lot of missing data; but again, when missingness is substantially associated with the likelihood of the exposure, the difference becomes much more apparent.
+More generally, we see that assuming missingness indicates exposure leads to less variance to some extent than the other two methods. When data is missing at random or missing completely at random, there's not a lot of difference until you have a lot of missing data; but again, when missingness is substantially associated with the likelihood of the exposure, the difference becomes much more apparent.
 
 ---
 
@@ -336,7 +336,6 @@ This slide is very boring and is just here to show you that all the methods perf
 .right-column[
 
 ```{r, fig.pos = "top"}
-## TODO: Can I top-align this? Need wifi for chunk options
 knitr::include_graphics("presfigures/realworld.png", dpi = 72)
 ```
 ]
@@ -412,7 +411,7 @@ background-size: cover
 I definitely want to thank a few R developers for making this work easier and more fun:
 
 - Stef van Buuren - his mice package for multiple imputation has really incredible documentation and makes every step of the process accessible, making the imputation of daily values pretty painless
-- Henrik Bengetsson and Davis Vaughn have built the futures and furrr packages respectively; futures allows for parallelization of code, and furrr is built on top of the purrr package for easy iterating in parallel without having to understand much of the technical details at all. These folks' work reduced my run time to probably 1/3 of what it would have been with very little additional effort on my part, and I'm very grateful.
+- Henrik Bengetsson and Davis Vaughn have built the future and furrr packages respectively; future allows for parallelization of code, and furrr is built on top of the purrr package for easy iterating in parallel without having to understand much of the technical details at all. These folks' work reduced my run time to probably 1/3 of what it would have been with very little additional effort on my part, and I'm very grateful.
 - Brooke Watson's BRRR package plays a hip-hop sound byte of your choosing when a process finishes running, which made this work no faster but infinitely more enjoyable.
 
 Finally, here's where you can find a link to these slides as well as the code I used for simulation and creating the slides and visuals.
