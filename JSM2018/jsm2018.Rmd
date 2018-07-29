@@ -393,7 +393,7 @@ background-size: cover
   - Stef van Buuren for [mice](http://stefvanbuuren.github.io/mice/index.html)
   - Davis Vaughn, Henrik Bengtsson for [furrr](https://davisvaughan.github.io/furrr/) and [future](https://github.com/HenrikBengtsson/future)
   - Brooke Watson for [BRRR](https://github.com/brooke-watson/BRRR)
-  - VUMC CIBS Center principal investigators
+  - VUMC CIBS Center PIs and research team
   
 ]
 
@@ -408,11 +408,13 @@ background-size: cover
 
 ???
 
-I definitely want to thank a few R developers for making this work easier and more fun:
+I want to thank a few R developers for making this work easier and more fun:
 
 - Stef van Buuren - his mice package for multiple imputation has really incredible documentation and makes every step of the process accessible, making the imputation of daily values pretty painless
-- Henrik Bengetsson and Davis Vaughn have built the future and furrr packages respectively; future allows for parallelization of code, and furrr is built on top of the purrr package for easy iterating in parallel without having to understand much of the technical details at all. These folks' work reduced my run time to probably 1/3 of what it would have been with very little additional effort on my part, and I'm very grateful.
-- Brooke Watson's BRRR package plays a hip-hop sound byte of your choosing when a process finishes running, which made this work no faster but infinitely more enjoyable.
+- Henrik Bengetsson and Davis Vaughn have built the future and furrr packages respectively, which work on parallel processing. These folks' work reduced my run time to probably 1/3 of what it would have been with very little additional effort on my part, and I'm very grateful.
+- If you're interested in making your simulations or other long-running processes more fun, I would definitely recommend Brooke Watson's BRRR package, which made this work no faster but infinitely more enjoyable.
+
+And of course, we'd love to thank the principal investigators and research staff at the Vanderbilt Center for Critical Illness, Brain Dysfunction and Survivorship, who come up with these ideas and work incredibly hard to design these studies and collect the data.
 
 Finally, here's where you can find a link to these slides as well as the code I used for simulation and creating the slides and visuals.
 
