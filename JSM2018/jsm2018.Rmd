@@ -1,25 +1,24 @@
 ---
 title: "Analyzing Summary Variables in the Presence of Partially Missing Longitudinal Data"
-author: "Jennifer L Thompson, MPH<br>Rameela Chandrasekhar, PhD"
-date: "2018-07-30"
+author: "Jennifer L Thompson, MPH<br>Rameela Chandrasekhar, PhD<br>Vanderbilt University Medical Center"
+date: "JSM 2018"
 output:
   xaringan::moon_reader:
     chakra: libs/remark-latest.min.js
-    css: ["robot-fonts", "default", "css/footers.css"]
+    css: ["robot-fonts", "default", "css/footers.css", "css/my-theme.css"]
     nature:
-      highlightStyle: github
-      highlightLines: true
+      titleSlideClass: ["right", "top", "inverse"]
       countIncrementalSlides: false
+    includes:
+      in_header: header.html
 ---
 
+.right[
 ## TODO
 
-Make the title slide better.
-
-- Add Twitter, Github?
-- Footer with link to repo
 - Improve results figures
 - Update README
+]
 
 ```{r setup, include=FALSE}
 options(htmltools.dir.version = FALSE)
@@ -32,17 +31,13 @@ knitr::opts_chunk$set(echo = FALSE)
 # Our Motivation
 
 ```{r}
-knitr::include_graphics("presfigures/exposure_only.png")
+knitr::include_graphics("presfigures/exposure_only.png", dpi = 72)
 ```
 
 ???
 
-- Work with a research group which focuses on critically ill
-- Many projects involve both an in-hospital and one or more long-term components:
-    - Cognitive impairment
-    - Functional impairment and quality of life
-    - Mortality
-- So often our exposure of interest is measured daily while the patient is hospitalized
+- Work with a research group which focuses on all aspects of critical illness, including the aftermath
+- Many projects involve both in-hospital and long-term components, and we want to investigate association between some exposure during the hospitalization and an outcome that takes place a year or more later
 - Here, we have a patient who was hospitalized for five days, had the exposure of interest on three days and no exposure on the other two
 
 ---
@@ -50,7 +45,7 @@ knitr::include_graphics("presfigures/exposure_only.png")
 # Our Motivation
 
 ```{r}
-knitr::include_graphics("presfigures/exposure_outcome.png")
+knitr::include_graphics("presfigures/exposure_outcome.png", dpi = 72)
 ```
 
 --
@@ -58,18 +53,22 @@ knitr::include_graphics("presfigures/exposure_outcome.png")
 Is more delirium *(in-hospital brain dysfunction)* associated with scores on a cognitive test after hospital discharge?
 
 ```{r}
-knitr::include_graphics("presfigures/brains.png")
+knitr::include_graphics("presfigures/brains.png", dpi = 72)
 ```
 
 ???
 
-Then we might want to somehow summarize that exposure and see if it's related to some long-term outcome.
+Then we might want to somehow summarize that exposure and see if it's related to some long-term outcome. This could include
+
+- Cognitive or functional impairment
+- Quality of life
+- Mortality
 
 **SLIDE**
 
 BRAIN-ICU cohort:
 - published in 2013
-- interested in whether the duration or amount of delirium a patient experienced in the hospital was associated with performance on a test of cognitive ability up to a year after they were discharged
+- interested in whether the amount of delirium a patient experienced in the hospital was associated with performance on a test of cognitive ability up to a year after they were discharged
 
 Other possible examples:
 
@@ -85,7 +84,7 @@ class: inverse, center, middle
 ### Prospective cohort
 
 ```{r}
-knitr::include_graphics("presfigures/prosp_vismiss.png")
+knitr::include_graphics("presfigures/prosp_vismiss.png", dpi = 72)
 ```
 *BRAIN-ICU Cohort Study, NEJM 2013*
 ]
@@ -95,7 +94,7 @@ knitr::include_graphics("presfigures/prosp_vismiss.png")
 .pull-right[
 ### Retrospective EMR
 ```{r}
-knitr::include_graphics("presfigures/retro_vismiss.png",)
+knitr::include_graphics("presfigures/retro_vismiss.png", dpi = 72)
 ```
 ]
 
@@ -130,29 +129,38 @@ Four strategies:
 
 .pull-left[
   ### Assume the "best"
-  *Only count the exposure we know about*
+  *NA = unexposed:<br>Only count the exposure we know about*
   
 ```{r}
-knitr::include_graphics("presfigures/ignore.png")
+knitr::include_graphics("presfigures/ignore.png", dpi = 72)
 ```
 ]
-
---
 
 .pull-right[
   ### Assume the "worst"
-  *All missing time points get exposure*
+  *NA = exposed:<br>All missing time points get exposure*
 
 ```{r}
-knitr::include_graphics("presfigures/worst.png")
+knitr::include_graphics("presfigures/worst.png", dpi = 72)
 ```
 ]
 
---
-
-**Pros**: Straightforward to implement; plausible, *if* we know a lot about data collection
-  
+**Pros**: Straightforward to implement; plausible, *if* we know a lot about data collection<br>
 **Cons**: Prone to bias
+
+???
+
+In our case, the exposure is usually bad, so I've called our first strategy assuming the best: We only count the exposure we know about, and assume all the missing days have no exposure. For example, here we have a patient with two known days of exposure, so that's what they get - we ignore these two missing days.
+
+**SLIDE**
+
+Of course, we can also assume the worst, meaning that we assume every missing day *does* have the exposure. So here our hypothetical patient would get a value of four.
+
+**SLIDE**
+
+These approaches are straightforward to implement, and in certain cases they might make a lot of sense. For example, we use an organ dysfunction score which incorporates bilirubin levels, but bilirubin is generally not measured every day and therefore is not always available. Working with our clinical collaborators, we've usually decided that a missing bilirubin means there was no clinical reason to suspect liver dysfunction.
+
+But of course, if you *don't* know for certain whether or how your missingness is informative, these approaches can be quite prone to bias.
 
 ---
 
@@ -170,7 +178,7 @@ background-position: 90% 35%
   1. Multiply impute missing *summary values*<br>
   before modeling
 ]
---
+
 <br>
 <br>
 .pull-left[
@@ -184,6 +192,14 @@ background-position: 90% 35%
   - Ignores the data we *do* have
   - Likely to *overestimate* uncertainty
 ]
+
+???
+
+Of course both of those approaches make some pretty big assumptions, so in this next approach we could assume *nothing*: If the patient has even one missing value, we can't know for certain what the overall summary value would be, so we consider that whole value missing.
+
+In this case, we use multiple imputation prior to regression modeling; in this example, I've "used" five imputations, and our patient gets values all over the map. This might be OK if we have good covariate data with which to impute, and lots of missing patient-days; it is pretty straightforward to implement, and it at least acknowledges the uncertainty, which our simple approaches do not.
+
+However, it's essentially throwing out all the data we *do* have available - in this case, these four patient-days where we know the exposure value count for nothing. And while it at least acknowledges the uncertainty, this approach will likely *overestimate* it.
 
 ---
 background-image: url(presfigures/imputedaily.png)
@@ -200,12 +216,9 @@ background-position: 90% 35%
   1. Use these imputed summary<br>datasets when modeling
 ]
 
---
-
 .pull-left[
 **Pros**:
-  - Maximizes use of data we have
-  - Fewest assumptions about missing values
+  - Maximizes use of data we have, including available covariate information
 ]
 
 .pull-right[
@@ -213,6 +226,14 @@ background-position: 90% 35%
   - Computation time
   - Data wrangling
 ]
+
+???
+
+In our final approach, we try to assume as little as possible, using the data from the days we know about and imputing at this lowest hierarchy the days we don't. Once we've multiply imputed missing patient-days, we summarize each of those **imputed** datasets, then use those summarized datasets in multiple imputation when we model.
+
+This approach, of course, maximizes the use of the data that we have available, including daily covariate data to help predict our missing values. But it's the most computationally intensive approach, which can matter especially in large EMR studies, and may involve some gnarly data wrangling when you go back and forth between imputing and summarizing.
+
+We assumed that this approach was our best bet; it makes intuitive sense. However, what kind of statisticians would we be if we didn't test that assumption and simulate some things? So that's exactly what we did.
 
 ---
 
@@ -228,13 +249,16 @@ background-position: 90% 35%
 - True relationship with outcome: ranges from 0 to -5
 - Imputation methods incorporate severity of illness
 
+???
+
+We used our BRAIN-ICU cohort data as our inspiration for these simulations, meaning that our exposure was daily delirium, yes or no, and our outcome is a simulated score of cognitive impairment.
+
+We set a range of our individual patient-days to be missing, and set different types of missingness. For our exposures that were missing at random, we set a weak, moderate, and strong association between that missingness and a daily severity of illness score. For exposures that were missing not at random, we set a weak, moderate, and strong association between missingness and the true exposure value.
+
+In the two methods which use imputation, we again used severity of illness to help predict either the overall duration of delirium, or delirium on a daily basis.
+
 ---
 
-class: inverse, center, middle
-
-# BIAS
-
----
 class: inverse
 
 background-image: url(presfigures/bias.png)
@@ -242,57 +266,77 @@ background-size: cover
 
 ???
 
-1. Vertical panels = percent missing
-1. Horizontal panels = type of missingness
-1. X axis = true association between exposure and outcome
+First I'll describe the setup:
+
+1. Our vertical panels = percent missing
+1. Horizontal panels = type of missingness, again with weak, moderate, or strong associations between missingness and either our covariate, for missing at random, or our true exposure, for missing not at random
+1. X axis = true association between exposure and outcome, smallest to largest
 1. Y axis = bias
-1. For MAR, weak/moderate/strong indicates the strength of association between missingness and a covariate - in our case, severity of illness
-1. For MNAR, weak/moderate/strong indicates the strength of association between missingness and the true value of our daily exposure
+1. Colors:
+    - Yellow = all missing days are assumed to not have the exposure
+    - Green = assume all missing days *do* have the exposure
+    - Blue = Any patient with any missing day has their entire summary value imputed
+    - Purple = Impute all missing patient-days individually, then summarize and model with the summarized imputations
+
+Main points:
+
+- Note that only one row has a blue line. That represents our third approach, imputing the entire summary value when the patient has even one day missing. As we might expect, that approach performed really terribly; even at 5% missing, the bias there quickly outpaced any other approach. It turns out that once you have a decent amount of patient-days missing, this approaches forces so many overall summary values to be missing that it's just untenable. So our first message is... don't do that.
+- Obviously our bias gets worse as the amount of missingness increases, and is also worse when our exposure is not missing at random. No surprises there.
+- When our data is missing completely at random, or missing at random, our daily imputation approach has the least bias. Between the other two approaches, as missingness gets more prevalent, it looks like cynicism is actually paying off, since assuming all missingness gets the exposure is a little less biased than our optimistic approach.
+- When our exposure is not missing at random, but the association between the exposure and missingness isn't very strong, those statements all still apply - this column looks pretty much like the ones to the left.
+- Once we have a stronger relationship between the exposure and missingness, though, the differences become more striking. Assuming our missing days are unexposed - effectively *ignoring* the missingness - starts to do really, really badly in comparison. Assuming the worst and imputing daily are running pretty neck and neck, just in opposite directions, *unless* there's a strong chance that if our data is missing, the patient truly did have the exposure - in other words, our missingness is quite informative. In that case, assuming missing indicates exposure is less biased than trying to impute with our covariates.
 
 ---
 
 class: inverse, center, middle
 
-# STANDARD ERRORS/<br>CI WIDTH
-
----
-
 background-image: url(presfigures/se_beta.png)
 background-size: cover
+
+???
+
+Moving to standard errors, we see the same pattern with the imputation of the summary value - it's bad with very little missingness, and gets worse the stronger the actual effect size.
 
 ---
 
 background-image: url(presfigures/ci_width.png)
 background-size: cover
 
----
+???
 
-class: inverse, center, middle
+This slide is for those of you who prefer your variance estimates in terms of confidence intervals.
 
-# COVERAGE
+More generally, we see that assuming missingness indicates exposure leads to less variance to some extent than the other two methods. When data is missing at random or missing completely at random, this isn't a major issue until you have a lot of missing data; but again, when missingness is substantially associated with the likelihood of the exposure, the difference becomes much more apparent.
 
 ---
 
 background-image: url(presfigures/coverage.png)
 background-size: cover
 
----
+???
 
-class: inverse, center, middle
+Looking at coverage, the same patterns emerge:
 
-# POWER
+- Imputing the summary value performs badly right out of the gate
+- Imputing the daily value often outperforms the other methods
+- The exception is when missingness is meaningfully associated with the true exposure, in which case assuming that missingness indicates the exposure is generally the winner
+- With lots of missingness and a large true effect, none of them perform particularly well
 
 ---
 
 background-image: url(presfigures/power.png)
 background-size: cover
 
+???
+
+This slide is very boring and is just here to show you that all the methods performed about equally well in terms of statistical power.
+
 ---
 
-# Real Life
+## Examples with Motivating Data
 
 .left-column[
-- Duration of exposure vs outcome in two real-world studies
+- Duration of exposure vs outcome in two real-world studies, adjusting for one covariate
 - Three strategies to summarize duration of exposure
 ]
 
@@ -300,33 +344,109 @@ background-size: cover
 
 .right-column[
 
-```{r}
-knitr::include_graphics("presfigures/realworld.png")
+```{r, fig.pos = "top"}
+## TODO: Can I top-align this? Need wifi for chunk options
+knitr::include_graphics("presfigures/realworld.png", dpi = 72)
 ```
 ]
 
+???
+
+We're going to come full circle now, and apply each strategy to our two real-world studies. These analyses are simpler than we did in real life, but do adjust for severity of illness, which is likely a major confounder.
+
+As we might expect, when there is little missing data, and it's likely to be missing more or less at random, our results look very, very similar. When we have more missingness, we can see that the results might be quite different. We can also see that there is less variance when we assume missingness is indicative of having the exposure, though it's likely that that result is biased.
+
 ---
+
+class: middle, inverse
 
 background-image: url(presfigures/missingdata.jpg)
 background-position: 5% 40%
 
-class: middle, inverse
-
 .pull-right[
-  ### Future Exploration
+  # Takeaways
 
-  - Continuous exposure
-  - Different relationships between<br>covariates/exposure and missingness
+  - Understand your data and its missingness
+  - Don't ignore your missingness
+  - Don't throw out your data
+  - Better safe than sorry: imputing at the lowest level is usually worth it
 ]
 
 .pull-right[
-  ### Acknowledgements
+  #### Future Exploration
 
-  - VUMC CIBS Center Principal Investigators
-  - Stef van Buuren for mice
-  - Davis Vaughn, Henrik Bengetsson for furrr and futures
-  - Brooke Watson for BRRR
+  - Continuous exposure
+  - Complex relationships between covariates/exposure, missingness
+]
+
+<div class="photo-footer"><i>Photo used with permission, <a href = http://bit.ly/etsy-missing>NausicaaDistribution Etsy shop</a>, bit.ly/etsy-missing</i></div>
+
+???
+
+1. **Understand your data and its missingness:** When missingness is strongly indicative of the exposure, our advice on which method to use changes
+1. **Don't ignore your missingness:** you can do better than just counting what you know about, especially if data is MNAR
+1. **Don't throw out your data:** imputing the entire value when you have at least partial knowledge is a bad idea
+1. **Better safe than sorry:** imputing daily status indeed does seem most appropriate in most cases, and is likely worth the extra trouble. If you don't have a solid idea of why your data is missing, this is probably the best approach.
+
+In the future, I hope to repeat these analyses with a continuous exposure, which has the added twist of being able to be summarized many *different* ways, and incorporating more complex relationships between covariates, exposures, and missingness. We purposely kept these straightforward, but as we all know, real life is not always that clear cut!
+
+---
+
+class: inverse, top
+
+background-image: url(presfigures/balticsunset.jpg)
+background-size: cover
+
+.left[
+  ## Acknowledgements
+
+  - Stef van Buuren for [mice](http://stefvanbuuren.github.io/mice/index.html)
+  - Davis Vaughn, Henrik Bengtsson for [furrr](https://davisvaughan.github.io/furrr/) and [future](https://github.com/HenrikBengtsson/future)
+  - Brooke Watson for [BRRR](https://github.com/brooke-watson/BRRR)
+  - VUMC CIBS Center principal investigators
   
 ]
 
-<div class="photo-footer"><i>Photo used by permission of <a href = http://bit.ly/etsy-missing>NausicaaDistribution Etsy shop</a>, bit.ly/etsy-missing</i></div>
+.right[
+<br><br><br><br><br><br><br><br>
+<a href="http://twitter.com/jent103"><i class="fa fa-twitter fa-fw"></i>&nbsp; @jent103</a><br>
+<a href="http://github.com/jenniferthompson"><i class="fa fa-github fa-fw"></i>&nbsp; @jenniferthompson</a><br>
+<a href="mailto:j.thompson@vumc.org"><i class="fa fa-paper-plane fa-fw"></i>&nbsp; j.thompson@vumc.org</a><br>
+<a href="https://jenthompson.me"><i class="fa fa-link fa-fw"></i>&nbsp; jenthompson.me/resources</a>
+]
+
+???
+
+I definitely want to thank a few R developers for making this work easier and more fun:
+
+- Stef van Buuren - his mice package for multiple imputation has really incredible documentation and makes every step of the process accessible, making the imputation of daily values pretty painless
+- Henrik Bengetsson and Davis Vaughn have built the futures and furrr packages respectively; futures allows for parallelization of code, and furrr is built on top of the purrr package for easy iterating in parallel without having to understand much of the technical details at all. These folks' work reduced my run time to probably 1/3 of what it would have been with very little additional effort on my part, and I'm very grateful.
+- Brooke Watson's BRRR package plays a hip-hop sound byte of your choosing when a process finishes running, which made this work no faster but infinitely more enjoyable.
+
+Finally, here's where you can find a link to these slides as well as the code I used for simulation and creating the slides and visuals.
+
+---
+
+background-image: url(presfigures/bias_no3.png)
+background-size: cover
+
+---
+
+background-image: url(presfigures/se_beta_no3.png)
+background-size: cover
+
+---
+
+background-image: url(presfigures/ci_width_no3.png)
+background-size: cover
+
+---
+
+background-image: url(presfigures/coverage_no3.png)
+background-size: cover
+
+---
+
+background-image: url(presfigures/power_no3.png)
+background-size: cover
+

@@ -9,6 +9,7 @@ library(extrafont)
 # library(gganimate)
 library(tidyverse)
 library(viridisLite)
+library(patchwork)
 
 ## viridisLite::viridis(n = 4, direction = -1)
 ## FDE725 = yellow
@@ -18,6 +19,26 @@ library(viridisLite)
 
 vcolors <- viridisLite::viridis(n = 4, direction = -1) %>%
   set_names(c("yellow", "green", "blue", "purple"))
+
+## -- Function for combining/spacing plots from Andrew Heiss -------------------
+make_plot <- function(cut, omit_y = FALSE) {
+  p <- ggplot(data = filter(diamonds, cut == cut, color %in% LETTERS[4:5]),
+              aes(x = carat, y = price)) +
+    geom_point() +
+    facet_wrap(~ color) +
+    labs(title = cut)
+  
+  if (omit_y) {
+    p + theme(axis.title.y = element_blank(),
+              axis.ticks.y = element_blank(),
+              axis.text.y = element_blank())
+  } else {
+    p
+  }
+  
+}
+
+# make_plot("Fair") + make_plot("Good", omit_y = TRUE)
 
 ## -- Compare prospective, retrospective studies -------------------------------
 prosp_data <- readRDS("../rawdata/study1.rds")
@@ -65,9 +86,9 @@ ggsave(
   width = 5, height = 5.25, units = "in", dpi = 400
 )
 
-## -- Bias ---------------------------------------------------------------------
+## -- Simulation Results -------------------------------------------------------
 ## Load and combine simulation results, all stored in results/ in chunks of 250
-sim_files <- list.files("../results", pattern = "*\\.rds$")
+sim_files <- list.files("../results", pattern = "^sim\\_results\\_.*\\.rds$")
 sim_results <- map(paste0("../results/", sim_files), readRDS) %>% bind_rows() 
 
 ## Bias: Mean of betas - true beta
@@ -110,10 +131,10 @@ sim_results_grouped <- sim_results2 %>%
       ),
       levels = 1:4,
       labels = c(
-        "Ignore (NA = unexposed)",
-        "Worst (NA = exposed)",
-        "Impute summary value",
-        "Impute daily values"
+        "NA = unexposed",
+        "NA = exposed",
+        "Impute summary",
+        "Impute daily"
       )
     ),
     assoc = factor(
@@ -124,7 +145,7 @@ sim_results_grouped <- sim_results2 %>%
         is.na(assoc)      ~ 4,
         TRUE ~ as.numeric(NA)
       ),
-      levels = 1:4, labels = c("Weak", "Moderate", "Strong", "(N/A)")
+      levels = 1:4, labels = c("Weak", "Moderate", "Strong", " ")
     ),
     miss_type = factor(
       case_when(
@@ -184,36 +205,46 @@ sim_results_grouped <- sim_results2 %>%
 #     )
 #   )
 
-## Dataset of reference lines
-## Bias, SE/CI width: 0
-## Coverage: 95%
-## Power: 80%
-sim_refs <- data.frame(
-  quantity_f = factor(
-    1:5,
-    levels = 1:5,
-    labels = c("Bias", "Std Error", "CI Width", "Coverage", "Power")
-  ),
-  ref_value = c(0, 0, 0, 0.95, 0.05)
-)
+facet_breaks <- function(x){
+  round(seq(min(x) - 0.05, max(x) + 0.05, length.out = 3), 0.05)
+}
 
-## Function to create plots for various measures of performance
 plot_measure <- function(
   measure,
   measure_title,
+  # missingness = c("MCAR", "MAR", "MNAR"),
   beta_max = -1,
   beta_breaks = c(0, 0.4, 0.8, 1),
-  ref_value = NULL
+  df = sim_results_grouped
 ){
+  ## Values for reference line, if applicable
+  ref_value <- case_when(
+    measure == "bias"     ~ 0,
+    measure == "coverage" ~ 0.95,
+    measure == "power"    ~ 0.05,
+    TRUE                  ~ as.numeric(NA)
+  )
+  
   ## Leave true_beta > beta_max out to help focus on smaller effect sizes
   ## (remember, betas are negative)
-  sim_results_sub <- subset(sim_results_grouped, true_beta >= beta_max)
+  df_sub <- subset(df, true_beta >= beta_max)
   
-  p <- ggplot(sim_results_sub) +
-    aes_string(x = "abs(true_beta)", y = measure, colour = "strategy") +
-    facet_grid(miss_prop_f ~ miss_type + assoc, scales = "free_y")
+  p <- ggplot(df_sub) +
+    aes_string(x = "abs(true_beta)", y = measure, colour = "strategy")
   
-  if(!is.null(ref_value)){
+  ## If measure is power or coverage, should always go from 0-1; otherwise,
+  ##  y axis limits can vary
+  if(measure %in% c("power", "coverage")){
+    p <- p +
+      facet_grid(miss_prop_f ~ miss_type + assoc) +
+      scale_y_continuous(limits = c(0, 1), breaks = c(0, 0.5, 1), name = "")
+  } else{
+    p <- p +
+      facet_grid(miss_prop_f ~ miss_type + assoc, scales = "free_y") +
+      scale_y_continuous(name = "")
+  }
+  
+  if(!is.na(ref_value)){
     p <- p +
       geom_hline(
         yintercept = ref_value, linetype = "dotted", colour = "#FFFFFF", size = 1
@@ -221,20 +252,15 @@ plot_measure <- function(
   }
   
   p <- p +
-    # geom_tile(aes(x = 0, y = 0, fill = miss_type), alpha = 0.05, width = Inf, height = Inf) +
-    # scale_fill_manual(values = c("grey20", "grey40", "grey50")) +
     geom_line() +
     geom_point(size = 3.5, alpha = 0.8) +
     scale_x_continuous(
-      name = "True Effect Size",
+      name = "\nTrue Effect Size\n",
       breaks = beta_breaks,
       labels = beta_breaks * -1
     ) +
-    scale_colour_viridis_d(name = "Strategy:", direction = -1) +
-    labs(
-      title = measure_title
-    ) +
-    # guides(fill = "none") +
+    scale_colour_viridis_d(name = "", direction = -1) +
+    labs(title = paste0("\n", measure_title)) + #, y = "") +
     theme_dark(base_family = "Roboto Condensed") +
     theme(
       plot.title = element_text(face = "bold", size = 30, colour = "#FFFFFF"),
@@ -242,16 +268,19 @@ plot_measure <- function(
       axis.title.x = element_text(
         colour = "#FFFFFF", size = 20, face = "bold", vjust = 0
       ),
-      axis.title.y = element_blank(),
+      # axis.title.y = element_blank(),
       axis.text = element_text(colour = "#FFFFFF", size = 12),
+      # legend.position = "none",
       legend.position = "top",
+      legend.justification = c(1, 0.95),
       legend.direction = "horizontal",
       legend.background = element_rect(fill = "#272822"),
       legend.title = element_text(colour = "#FFFFFF", size = 15),
       legend.text = element_text(colour = "#FFFFFF", size = 15),
-      strip.text = element_text(face = "bold", size = 20),
+      strip.text.x = element_text(face = "bold", size = 20, hjust = 0),
+      strip.text.y = element_text(face = "bold", size = 20, angle = 0),
       # panel.background = element_blank(),
-      panel.spacing.x = unit(c(1, rep(0.25, 2), 0.5, rep(0.25, 2)), "cm"),
+      panel.spacing.x = unit(c(1.1, rep(0.25, 2), 1.1, rep(0.25, 2)), "lines"),
       panel.spacing.y = unit(0.5, "cm"),
       panel.grid = element_line(colour = "grey60")
     )
@@ -263,14 +292,52 @@ jsm_measures <- c("bias", "se_beta", "ci_width", "coverage", "power")
 jsm_plots <- pmap(
   .l = list(
     measure = jsm_measures,
-    measure_title = c(
-      "BIAS", "STANDARD ERROR", "CI WIDTH", "COVERAGE", "POWER"
-    ),
-    ref_value = c(0, 0, 0, 0.95, 0.05)
+    measure_title = c("BIAS", "STANDARD ERROR", "CI WIDTH", "COVERAGE", "POWER")
   ),
   .f = plot_measure
 ) %>%
   set_names(jsm_measures)
+
+jsm_plots_no3 <- pmap(
+  .l = list(
+    measure = jsm_measures,
+    measure_title = c("BIAS", "STANDARD ERROR", "CI WIDTH", "COVERAGE", "POWER")
+  ),
+  .f = plot_measure,
+  df = subset(sim_results_grouped, strategy != "Impute summary")
+) %>%
+  set_names(jsm_measures)
+
+# ## Patchwork attempt: Way to get background to be something other than white?
+# ## Will need wifi to investigate
+# jsm_plots <- pmap(
+#   .l = list(
+#     measure = rep(jsm_measures, each = 3),
+#     measure_title = rep(
+#       c("BIAS", "STANDARD ERROR", "CI WIDTH", "COVERAGE", "POWER"),
+#       each = 3
+#     )#,
+#     # missingness = rep(c("MCAR", "MAR", "MNAR"), times = length(jsm_measures))
+#   ),
+#   .f = plot_measure
+# ) %>%
+#   set_names(jsm_measures)
+#   # set_names(
+#   #   paste(
+#   #     rep(jsm_measures, each = 3), rep(c("mcar", "mar", "mnar"), times = 3),
+#   #     sep = "_"
+#   #   )
+#   # )
+# 
+# ## -- For each measure, patchwork together and save ----------------------------
+# bias_plots <- jsm_plots[str_subset(names(jsm_plots), "^bias")]
+# 
+# ggsave(
+#   filename = "testpatch.png",
+#   bias_plots[[1]] + bias_plots[[2]] + bias_plots[[3]],
+#   device = "png", path = "presfigures",
+#   width = 10.67, height = 8, units = "in", dpi = 400
+# )
 
 walk(
   jsm_measures,
@@ -283,13 +350,22 @@ walk(
   )
 )
 
+walk(
+  jsm_measures,
+  ~ ggsave(
+    filename = sprintf("%s_no3.png", .),
+    jsm_plots_no3[[.]],
+    path = "presfigures",
+    device = "png",
+    width = 10.67, height = 8, units = "in", dpi = 400
+  )
+)
+
 ## -- "Real world" analysis ----------------------------------------------------
 rw_results <- readRDS("../results/realworld.rds") %>%
   mutate(
-    strategy = factor(strategy,
-      levels = c(
-        "Ignore (NA = unexposed)", "Worst (NA = exposed)", "Impute daily"
-      )
+    strategy = factor(
+      strategy, levels = c("NA = unexposed", "NA = exposed", "Impute daily")
     )
   )
 

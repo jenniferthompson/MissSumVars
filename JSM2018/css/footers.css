@@ -1,5 +1,21 @@
+div.main-footer {
+    background-color: #272822;
+    position: absolute;
+    bottom: 0px;
+    right: 0px;
+    height: 30px;
+    width: 100%;
+}
+div.main-footer span {
+    font-size: 16pt;
+    color: #FFFFFF;
+    position: absolute;
+    left: 15px;
+    bottom: 2px;
+}
+
 div.photo-footer {
-  font-size: 12pt;
+  font-size: 10pt;
   position: absolute;
   bottom: 15px;
   left: 15px;

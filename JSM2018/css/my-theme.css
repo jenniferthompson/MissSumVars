@@ -1,0 +1,9 @@
+a, a > code {
+  color: #ffffff; /*default: rgb(249, 38, 114); || sets color of links */
+  text-decoration: none; /* turns off background coloring of links */
+}
+
+.title-slide{
+  background-image: url(../presfigures/broad_missingpeople.jpg);
+  background-size: cover;
+}
