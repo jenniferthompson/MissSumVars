@@ -1,7 +1,7 @@
 ---
 title: "Analyzing Summary Variables in the Presence of Partially Missing Longitudinal Data"
 author: "Jennifer L Thompson, MPH<br>Rameela Chandrasekhar, PhD<br>Vanderbilt University Medical Center"
-date: "JSM 2018"
+date: "JSM 2018<br>bit.ly/"
 output:
   xaringan::moon_reader:
     chakra: libs/remark-latest.min.js
@@ -13,20 +13,11 @@ output:
       in_header: header.html
 ---
 
-.right[
-## TODO
-
-- Improve results figures
-- Update README
-]
-
 ```{r setup, include=FALSE}
 options(htmltools.dir.version = FALSE)
 knitr::opts_chunk$set(echo = FALSE)
 
 ```
-
----
 
 # Our Motivation
 

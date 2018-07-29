@@ -31,4 +31,4 @@ preparing summarized datasets for model fitting. Strategies:
 
 `realworld.R` applies these strategies to two deidentified actual datasets, saving the results to be plotted.
 
-Overview of workflow for a single dataset is [here](https://htmlpreview.github.io/?https://github.com/jenniferthompson/MissSumVars/blob/master/workflow.html).
+Sketch of workflow for a single dataset is [here](https://htmlpreview.github.io/?https://github.com/jenniferthompson/MissSumVars/blob/master/workflow.html).
