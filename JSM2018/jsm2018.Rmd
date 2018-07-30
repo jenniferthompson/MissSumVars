@@ -270,8 +270,9 @@ Main points:
 - Note that only one row has a blue line. That represents our third approach, imputing the entire summary value when the patient has even one day missing. As we might expect, that approach performed really terribly; even at 5% missing, the bias there quickly outpaced any other approach. It turns out that once you have a decent amount of patient-days missing, this approaches forces so many overall summary values to be missing that it's just untenable, and we really couldn't justify the simulations with more missingness. So our first message is... don't do that.
 - Obviously our bias gets worse as the amount of missingness increases, and is also worse when our exposure is not missing at random. No surprises there.
 - When our data is missing completely at random, or missing at random, our daily imputation approach has the least bias.
-- Between the other two approaches, as missingness gets more prevalent, it looks like cynicism is actually paying off, since assuming all missingness gets the exposure is a little less biased than our optimistic approach.
-- Once we have a stronger relationship between the exposure and missingness, though, the differences become more striking. Assuming our missing days are unexposed - the yellow line, effectively *ignoring* the missingness - starts to do really badly in comparison. If there's a strong chance that missingness truly indicates the presence of the exposure - in other words, our missingness is quite informative - then using this "missing = exposed" approach is less biased than trying to impute in our scenario, we had some, but not a ton of covariate data with which to impute.
+- If we can't impute daily:
+    - Between the other two approaches, as missingness gets more prevalent, it looks like cynicism is actually paying off, since assuming all missingness gets the exposure is a little less biased than our optimistic approach.
+- Once we have a relationship between the exposure and missingness, though, the winner changes. If there's a strong chance that missingness truly indicates the presence of the exposure - in other words, our missingness is quite informative - then using this "missing = exposed" approach is less biased than trying to impute, at least in our scenario.
 
 ---
 
@@ -372,10 +373,8 @@ background-position: 5% 40%
 
 1. **Understand your data and its missingness:** When missingness is strongly indicative of the exposure, our advice on which method to use changes
 1. **Better safe than sorry:** imputing daily status indeed does seem most appropriate in most cases, and is likely worth the extra trouble. If you don't have a solid idea of why your data is missing, this is probably the best approach.
-1. **Don't ignore your missingness:** you can do better than just counting what you know about, especially if data is MNAR
-1. **Don't throw out your data:** imputing the entire value when you have at least partial knowledge is a bad idea
-
-These two methods never win in our case
+1. **Don't throw out your data:** imputing the entire value when you have at least partial knowledge is a bad idea statistically; if unnecessary, disrespects the work done to give and collect that data
+1. **Don't ignore your missingness:** you can do better than just counting what you know about, especially if you know something about how and why data is missing
 
 In the future, I hope to repeat these analyses with a continuous exposure, which has the added twist of being able to be summarized many *different* ways, and incorporating more complex relationships between covariates, exposures, and missingness. We purposely kept these straightforward, but as we all know, real life is not always that clear cut!
 
