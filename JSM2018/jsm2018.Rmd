@@ -143,13 +143,9 @@ knitr::include_graphics("presfigures/worst.png", dpi = 72)
 
 In our case, the exposure is usually bad, so I've called our first strategy assuming the best: We only count the exposure we know about, and assume all the missing days have no exposure. For example, here we have a patient with two known days of exposure, so that's what they get - we ignore these two missing days.
 
-**SLIDE**
-
 Of course, we can also assume the worst, meaning that we assume every missing day *does* have the exposure. So here our hypothetical patient would get a value of four.
 
-**SLIDE**
-
-These approaches are straightforward to implement, and in certain cases they might make a lot of sense. For example, we use an organ dysfunction score which incorporates bilirubin levels, but bilirubin is generally not measured every day and therefore is not always available. Working with our clinical collaborators, we've usually decided that a missing bilirubin means there was no clinical reason to suspect liver dysfunction.
+These approaches are straightforward to implement, and in certain cases they might make a lot of sense. For example, we use an organ dysfunction score which incorporates bilirubin levels, but even in our prospective studies, bilirubin is generally not measured every day unless it's clinically helpful. Working with our clinical collaborators, we've usually decided that a missing bilirubin means there was no clinical reason to suspect liver dysfunction.
 
 But of course, if you *don't* know for certain whether or how your missingness is informative, these approaches can be quite prone to bias.
 
@@ -357,9 +353,10 @@ background-position: 5% 40%
   # Takeaways
 
   - Understand your data and its missingness
-  - Don't ignore your missingness
-  - Don't throw out your data
   - Better safe than sorry: imputing at the lowest level is usually worth it
+  - Don't
+      - Throw out data
+      - Ignore your missingness
 ]
 
 .pull-right[
@@ -374,9 +371,11 @@ background-position: 5% 40%
 ???
 
 1. **Understand your data and its missingness:** When missingness is strongly indicative of the exposure, our advice on which method to use changes
+1. **Better safe than sorry:** imputing daily status indeed does seem most appropriate in most cases, and is likely worth the extra trouble. If you don't have a solid idea of why your data is missing, this is probably the best approach.
 1. **Don't ignore your missingness:** you can do better than just counting what you know about, especially if data is MNAR
 1. **Don't throw out your data:** imputing the entire value when you have at least partial knowledge is a bad idea
-1. **Better safe than sorry:** imputing daily status indeed does seem most appropriate in most cases, and is likely worth the extra trouble. If you don't have a solid idea of why your data is missing, this is probably the best approach.
+
+These two methods never win in our case
 
 In the future, I hope to repeat these analyses with a continuous exposure, which has the added twist of being able to be summarized many *different* ways, and incorporating more complex relationships between covariates, exposures, and missingness. We purposely kept these straightforward, but as we all know, real life is not always that clear cut!
 
